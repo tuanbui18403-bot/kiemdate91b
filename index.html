@@ -94,9 +94,19 @@ th{background:#f6efe6;font-weight:600}
 #zaloBar.on{display:flex}
 #zaloBar .zt{flex:1}
 #zaloBar .btn{flex:0 0 auto;text-decoration:none;padding:9px 12px;font-size:14px}
-#camTip{display:none;position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));background:#fff;color:var(--ink);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:2}
-#camTip.on{display:block}
-#camTip button{margin-top:8px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:600;padding:8px 14px;font-size:14px;cursor:pointer}
+#permChip{display:none;position:absolute;left:12px;top:calc(12px + env(safe-area-inset-top));z-index:2;border:0;border-radius:20px;padding:7px 12px;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+#permChip.on{display:inline-block}
+#permChip.ok{background:#e8f5ee;color:var(--green)}#permChip.ask{background:#fff3d6;color:#8a5a00}#permChip.bad{background:#fdecec;color:var(--red)}
+#permGuide{display:none;position:absolute;left:12px;right:12px;top:calc(56px + env(safe-area-inset-top));max-height:calc(100% - 150px);overflow:auto;background:#fff;color:var(--ink);border-radius:16px;padding:16px;z-index:3;box-shadow:0 8px 30px rgba(0,0,0,.4);font-size:14.5px;line-height:1.5}
+#permGuide.on{display:block}
+#permGuide h3{margin:0 0 4px}
+#permGuide #pgLead{margin:0 0 8px;color:var(--muted);font-size:13.5px}
+#permGuide ol{margin:0;padding:0;list-style:none;counter-reset:st}
+#permGuide li{counter-increment:st;position:relative;padding:8px 0 8px 40px;border-bottom:1px dashed var(--line)}
+#permGuide li::before{content:counter(st);position:absolute;left:0;top:7px;width:28px;height:28px;border-radius:50%;background:var(--brand);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+#permGuide .k{display:inline-block;background:#f3ede6;border:1px solid #e3d8cc;border-radius:7px;padding:0 7px;font-weight:700;white-space:nowrap}
+#permGuide #pgAlt{margin:10px 0 0;font-size:13px;color:var(--muted)}
+#permGuide .row{margin-top:12px}
 #liveErr{display:none;position:absolute;left:16px;right:16px;top:30%;background:#fff;color:var(--ink);border-radius:14px;padding:16px;font-size:15px;line-height:1.5;text-align:center}
 .live-bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:14px 12px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))}
 .live-bar button{border:0;border-radius:24px;padding:11px 14px;font-size:14px;font-weight:600;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;backdrop-filter:blur(4px)}
@@ -349,7 +359,17 @@ th{background:#f6efe6;font-weight:600}
   <video id="liveVideo" playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="false" muted autoplay disablepictureinpicture disableremoteplayback></video>
   <canvas id="livePreview"></canvas>
   <div id="liveBox"><i class="laser"></i><b class="c1"></b><b class="c2"></b><b class="c3"></b><b class="c4"></b></div>
-  <div id="camTip"><div id="camTipText"></div><button id="camTipOk">Đã hiểu</button></div>
+  <button id="permChip"></button>
+  <div id="permGuide">
+    <h3 id="pgTitle">Cho phép camera</h3>
+    <p id="pgLead"></p>
+    <ol id="pgSteps"></ol>
+    <p id="pgAlt"></p>
+    <div class="row">
+      <button class="btn ghost" id="pgLater">Để sau</button>
+      <button class="btn" id="pgRetry">Tôi đã bật xong – Thử lại</button>
+    </div>
+  </div>
   <div id="liveMsg">Đưa mã vạch vào trong khung</div>
   <div id="liveTip">Chạm màn hình để lấy nét · Mã nhỏ: cầm cách 15–20 cm</div>
   <i id="focusRing"></i>
@@ -1121,6 +1141,7 @@ async function openLive(){
   $('live').classList.add('on');
   $('liveErr').style.display = 'none'; $('liveBox').style.display = ''; $('liveMsg').style.display = ''; $('liveTip').style.display = '';
   ['liveTorch','liveZoom','liveCam'].forEach(id => { $(id).style.display = 'none'; $(id).classList.remove('on'); });
+  hideGuide();
   loadZxw().then(z => { if(z) zxw = z; });
   getNativeDetector();
   // Camera vẫn đang mở từ lần quét trước → dùng lại ngay, không xin quyền lại
@@ -1151,6 +1172,11 @@ async function openLive(){
       msg = '<b>Zalo trên máy này chặn camera.</b><br>Mở tool bằng '+browser+' để quét trực tiếp:' +
             '<br><a class="btn" style="margin-top:10px" href="'+esc(externalUrl())+'">Mở bằng '+browser+'</a>' +
             '<br><span style="font-size:13px;color:var(--muted)">Hoặc bấm <b>⋯</b> góc trên → <b>Mở bằng trình duyệt</b>.</span>';
+    else if(blocked && name === 'NotAllowedError'){
+      ['liveBox','liveMsg','liveTip'].forEach(id => $(id).style.display = 'none');
+      store(TIP_KEY, ''); updatePermChip(); showGuide(true);
+      return;
+    }
     else if(blocked)
       msg = '<b>Camera đang bị chặn.</b><br>Vào Cài đặt → '+browser+' → <b>Camera → Cho phép</b>, rồi bấm quét lại.';
     else
@@ -1181,27 +1207,83 @@ function setupZaloBar(){
   if(canJump && !done) setTimeout(() => { try{ location.href = url; }catch(e){} }, 400);
 }
 
-/* Hướng dẫn 1 lần để trình duyệt nhớ quyền camera (không hỏi lại ở những lần mở sau) */
-const TIP_KEY = 'kd91b_camtip';
-async function maybeCamTip(){
-  if(IN_ZALO || IN_GAS || store(TIP_KEY) === '1') return;
-  const ua = navigator.userAgent, chromeIOS = /CriOS/i.test(ua);
-  if(IS_ANDROID){
-    try{ if(navigator.permissions && (await navigator.permissions.query({name:'camera'})).state === 'granted'){ store(TIP_KEY, '1'); return; } }catch(e){}
-  }
-  let html;
-  if(IS_ANDROID)
-    html = '📌 <b>Để Chrome không hỏi lại quyền camera:</b> khi được hỏi, chọn <b>Cho phép</b> (không chọn “Chỉ lần này”).<br>' +
-           'Nếu lỡ chọn sai: bấm <b>biểu tượng bên trái địa chỉ trang</b> → <b>Quyền</b> → <b>Camera</b> → <b>Cho phép</b>.';
-  else if(chromeIOS)
-    html = '📌 <b>Để Chrome không hỏi lại quyền camera:</b> bấm <b>⋯</b> → <b>Cài đặt</b> → <b>Cài đặt nội dung</b> (hoặc <b>Quyền riêng tư</b>) → <b>Camera</b> → <b>Cho phép</b>.<br>' +
-           'Nếu vẫn bị hỏi, dùng <b>Safari</b> và làm theo hướng dẫn ở Safari.';
-  else
-    html = '📌 <b>Để Safari không hỏi lại quyền camera:</b> bấm <b>aA</b> (hoặc <b>⋯</b>) ở thanh địa chỉ → <b>Cài đặt trang web</b> → <b>Camera</b> → chọn <b>Cho phép</b>.<br>' +
-           'Hoặc cho mọi trang: <b>Cài đặt iPhone → Ứng dụng → Safari → Camera → Cho phép</b>.';
-  $('camTipText').innerHTML = html; $('camTip').classList.add('on');
+/* ===== Trạng thái quyền camera + hướng dẫn từng bước =====
+   Trình duyệt không cho trang web tự mở Cài đặt, nên tool chỉ rõ từng chỗ cần bấm theo đúng máy/trình duyệt. */
+const TIP_KEY = 'kd91b_camtip';                       // '1' = nhân viên xác nhận đã bật "Cho phép"
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent), IS_CHROME_IOS = /CriOS/i.test(navigator.userAgent);
+let permStatus = null;
+async function cameraPermission(){
+  try{
+    if(!navigator.permissions) return 'unknown';
+    if(!permStatus){
+      permStatus = await navigator.permissions.query({name:'camera'});
+      permStatus.onchange = () => {                     // Chrome: bật quyền xong → tự mở lại camera
+        updatePermChip();
+        if(permStatus.state === 'granted' && $('permGuide').classList.contains('on')){ hideGuide(); if(!liveStream) openLive(); }
+      };
+    }
+    return permStatus.state;                           // granted | prompt | denied
+  }catch(e){ return 'unknown'; }
 }
-$('camTipOk').onclick = () => { store(TIP_KEY, '1'); $('camTip').classList.remove('on'); };
+function guideSteps(denied){
+  const K = t => '<span class="k">'+t+'</span>';
+  if(IS_ANDROID) return {
+    lead: denied ? 'Camera đang bị chặn cho trang này. Làm theo các bước để bật lại:' : 'Làm 1 lần để Chrome nhớ, không hỏi lại nữa:',
+    steps: [
+      'Bấm biểu tượng '+K('⚙ / 🔒')+' ở <b>bên trái thanh địa chỉ</b> (phía trên cùng màn hình).',
+      'Chọn '+K('Quyền')+' (hoặc '+K('Cài đặt trang web')+').',
+      'Chọn '+K('Camera')+' → '+K('Cho phép')+'.',
+      'Quay lại trang và bấm '+K('Tôi đã bật xong – Thử lại')+'.'],
+    alt: 'Nếu vẫn không được: <b>Cài đặt điện thoại → Ứng dụng → Chrome → Quyền → Máy ảnh → Chỉ cho phép khi dùng ứng dụng</b>.'};
+  if(IS_CHROME_IOS) return {
+    lead: 'Chrome trên iPhone hay hỏi lại quyền camera. Nên dùng Safari. Nếu vẫn dùng Chrome:',
+    steps: [
+      'Mở ứng dụng '+K('Cài đặt')+' của iPhone.',
+      'Kéo xuống chọn '+K('Ứng dụng')+' → '+K('Chrome')+'.',
+      'Bật công tắc '+K('Camera')+'.',
+      'Quay lại Chrome và bấm '+K('Tôi đã bật xong – Thử lại')+'.'],
+    alt: 'Dùng Safari: mở link bằng Safari rồi làm theo hướng dẫn trong Safari để chỉ hỏi 1 lần.'};
+  return {                                             // Safari iPhone
+    lead: denied ? 'Camera đang bị chặn cho trang này. Làm theo các bước để bật lại:' : 'Làm 1 lần để Safari nhớ, không hỏi lại nữa:',
+    steps: [
+      'Bấm nút '+K('✕ Đóng')+' để tạm đóng màn hình quét, rồi bấm biểu tượng '+K('aA')+' (hoặc '+K('☰')+') ở <b>bên trái thanh địa chỉ</b>.',
+      'Chọn '+K('Cài đặt trang web')+'.',
+      'Chọn '+K('Camera')+' → '+K('Cho phép')+', rồi bấm '+K('Xong')+'.',
+      'Bấm lại nút quét mã, rồi bấm '+K('Tôi đã bật xong – Thử lại')+' nếu còn thấy hướng dẫn này.'],
+    alt: 'Hoặc bật cho mọi trang 1 lần: mở <b>Cài đặt iPhone → Ứng dụng → Safari → Camera → Cho phép</b>.'};
+}
+function showGuide(denied){
+  const g = guideSteps(denied);
+  $('pgTitle').textContent = denied ? 'Camera đang bị chặn' : 'Không muốn bị hỏi quyền camera nữa?';
+  $('pgLead').innerHTML = g.lead;
+  $('pgSteps').innerHTML = g.steps.map(x => '<li>'+x+'</li>').join('');
+  $('pgAlt').innerHTML = g.alt;
+  $('permGuide').classList.add('on');
+}
+function hideGuide(){ $('permGuide').classList.remove('on'); }
+async function updatePermChip(){
+  const chip = $('permChip');
+  if(IN_ZALO || IN_GAS){ chip.classList.remove('on'); return; }
+  const st = await cameraPermission();
+  chip.className = 'on';
+  if(st === 'denied'){ chip.classList.add('bad'); chip.textContent = '✕ Camera bị chặn – xem cách bật'; }
+  else if(store(TIP_KEY) === '1' || (IS_ANDROID && st === 'granted')){ chip.classList.add('ok'); chip.textContent = '✓ Đã cho phép camera'; }
+  else { chip.classList.add('ask'); chip.textContent = '⚙ Không muốn bị hỏi lại? Bấm đây'; }
+}
+async function maybeCamTip(){
+  if(IN_ZALO || IN_GAS) return;
+  await updatePermChip();
+  const st = await cameraPermission();
+  if(IS_ANDROID && st === 'granted') store(TIP_KEY, '1');
+  if(store(TIP_KEY) !== '1' && !store('kd91b_guide_seen')){ store('kd91b_guide_seen', '1'); showGuide(false); }   // tự hiện hướng dẫn lần đầu
+}
+$('permChip').onclick = async () => showGuide((await cameraPermission()) === 'denied');
+$('pgLater').onclick = hideGuide;
+$('pgRetry').onclick = async () => {
+  hideGuide(); store(TIP_KEY, '1');
+  if(!liveStream || !liveTrack || liveTrack.readyState !== 'live'){ closeLive(); stopStream(); openLive(); }
+  else updatePermChip();
+};
 
 function setupLiveControls(){
   const caps = capsOf(liveTrack);
