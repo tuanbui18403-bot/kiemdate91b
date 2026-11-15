@@ -83,6 +83,7 @@ th{background:#f6efe6;font-weight:600}
 #liveBox .laser::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#ff5a3c;box-shadow:0 0 8px #ff5a3c;animation:lz 1.6s ease-in-out infinite;will-change:transform}
 @keyframes lz{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(min(24vh,220px) * .8 - 2px))}}
 #liveVideo{cursor:crosshair}
+#livePreview{position:absolute;inset:0;width:100%;height:100%;display:none;cursor:crosshair}
 #liveTip{position:absolute;left:0;right:0;top:calc(42% + min(12%,110px) + 50px);text-align:center;color:rgba(255,255,255,.75);font-size:12.5px;text-shadow:0 1px 3px #000;pointer-events:none}
 #focusRing{position:fixed;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid #ffd54a;border-radius:50%;opacity:0;pointer-events:none;z-index:41}
 #focusRing.on{animation:fr .9s ease-out}
@@ -335,6 +336,7 @@ th{background:#f6efe6;font-weight:600}
 <!-- Quét mã trực tiếp bằng camera -->
 <div id="live">
   <video id="liveVideo" playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="false" muted autoplay disablepictureinpicture disableremoteplayback></video>
+  <canvas id="livePreview"></canvas>
   <div id="liveBox"><i class="laser"></i><b class="c1"></b><b class="c2"></b><b class="c3"></b><b class="c4"></b></div>
   <div id="liveMsg">Đưa mã vạch vào trong khung</div>
   <div id="liveTip">Chạm màn hình để lấy nét · Mã nhỏ: cầm cách 15–20 cm</div>
@@ -1023,31 +1025,76 @@ function inlineVideo(v){
   v.setAttribute('x5-video-player-type', 'h5'); v.setAttribute('x5-video-player-fullscreen', 'false');
   try{ v.disablePictureInPicture = true; }catch(e){}
 }
+/* Chế độ "khung vẽ": trình duyệt trong ứng dụng (Zalo, Facebook…) hay ép mọi video mở toàn màn hình.
+   Khi đó KHÔNG đưa thẻ video vào trang; hình camera được tự vẽ lên canvas → không bật trình phát video. */
+const CANVAS_KEY = 'kd91b_canvas';
+let CANVAS_MODE = IN_ZALO || /FBAN|FBAV|Instagram|Line\/|Messenger|MicroMessenger/i.test(navigator.userAgent) || store(CANVAS_KEY) === '1';
+let liveV = null, previewRaf = 0, liveStartAt = 0;
+function camVideo(){
+  if(liveV) return liveV;
+  if(CANVAS_MODE){
+    liveV = document.createElement('video');            // không gắn vào trang
+    $('liveVideo').style.display = 'none'; $('livePreview').style.display = 'block';
+  } else {
+    liveV = $('liveVideo'); $('livePreview').style.display = 'none'; $('liveVideo').style.display = '';
+  }
+  inlineVideo(liveV); hookFullscreen(liveV);
+  return liveV;
+}
+const camView = () => CANVAS_MODE ? $('livePreview') : camVideo();
+function drawPreview(){
+  cancelAnimationFrame(previewRaf);
+  if(!CANVAS_MODE || !liveOn) return;
+  const c = $('livePreview'), v = camVideo();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
+  if(W && H && (c.width !== W || c.height !== H)){ c.width = W; c.height = H; }
+  if(v.videoWidth && W && H){
+    const k = Math.max(W / v.videoWidth, H / v.videoHeight), dw = v.videoWidth * k, dh = v.videoHeight * k;
+    c.getContext('2d').drawImage(v, (W - dw)/2, (H - dh)/2, dw, dh);
+  }
+  previewRaf = requestAnimationFrame(drawPreview);
+}
 function useStream(s){
   if(liveStream && liveStream !== s) liveStream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
   liveStream = s; liveTrack = s.getVideoTracks()[0];
-  const v = $('liveVideo'); inlineVideo(v); v.srcObject = s; v.play().catch(() => {});
+  const v = camVideo(); v.srcObject = s; v.play().catch(() => {});
+  liveStartAt = Date.now(); drawPreview();
 }
-// Nếu trình duyệt (vd Zalo trên một số iPhone) vẫn ép mở toàn màn hình → thoát ra, hướng dẫn mở bằng Safari
-function fullscreenBlocked(){
-  const v = $('liveVideo');
-  try{ if(v.webkitDisplayingFullscreen && v.webkitExitFullscreen) v.webkitExitFullscreen(); }catch(e){}
+// Chuyển sang chế độ khung vẽ, dùng lại luồng camera đang có (không xin quyền lại)
+function switchToCanvas(){
+  const old = liveV;
+  try{ if(old && old.webkitDisplayingFullscreen && old.webkitExitFullscreen) old.webkitExitFullscreen(); }catch(e){}
   try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+  if(old){ try{ old.pause(); old.srcObject = null; }catch(e){} }
+  CANVAS_MODE = true; store(CANVAS_KEY, '1'); liveV = null;
+  if(liveStream) useStream(liveStream);
+}
+// Trình duyệt vẫn ép mở toàn màn hình
+function fullscreenBlocked(){
+  if(!CANVAS_MODE){ switchToCanvas(); return; }        // thử ngay chế độ khung vẽ
+  noCameraView();
+}
+// Không hiển thị được hình camera trong trang → hướng dẫn mở bằng Safari/Chrome
+function noCameraView(){
+  try{ if(liveV && liveV.webkitDisplayingFullscreen && liveV.webkitExitFullscreen) liveV.webkitExitFullscreen(); }catch(e){}
   if(!liveOn) return;
-  clearTimeout(liveTimer); liveOn = false;
+  clearTimeout(liveTimer); liveOn = false; cancelAnimationFrame(previewRaf);
   const browser = IS_ANDROID ? 'Chrome' : 'Safari';
   $('live').classList.add('on');
-  liveError('<b>'+(IN_ZALO ? 'Zalo' : 'Trình duyệt này')+' trên máy này không cho hiện camera trong trang</b> (tự mở trình phát video).<br>' +
+  liveError('<b>'+(IN_ZALO ? 'Zalo' : 'Trình duyệt này')+' trên máy này không cho hiện camera trong trang.</b><br>' +
     'Mở tool bằng '+browser+' để quét trực tiếp:<br><a class="btn" style="margin-top:10px" href="'+esc(externalUrl())+'">Mở bằng '+browser+'</a>' +
     '<br><span style="font-size:13px;color:var(--muted)">Hoặc bấm <b>⋯</b> góc trên → <b>Mở bằng trình duyệt</b>. Tạm thời có thể bấm <b>📸 Chụp ảnh</b>.</span>');
   stopStream();
 }
-['webkitbeginfullscreen','webkitpresentationmodechanged','enterpictureinpicture'].forEach(ev =>
-  $('liveVideo').addEventListener(ev, () => {
-    const v = $('liveVideo');
-    if(ev !== 'webkitpresentationmodechanged' || (v.webkitPresentationMode && v.webkitPresentationMode !== 'inline')) fullscreenBlocked();
-  }));
-document.addEventListener('fullscreenchange', () => { if(document.fullscreenElement === $('liveVideo')) fullscreenBlocked(); });
+function hookFullscreen(v){
+  if(v._hooked) return; v._hooked = true;
+  ['webkitbeginfullscreen','webkitpresentationmodechanged','enterpictureinpicture'].forEach(ev =>
+    v.addEventListener(ev, () => {
+      if(ev !== 'webkitpresentationmodechanged' || (v.webkitPresentationMode && v.webkitPresentationMode !== 'inline')) fullscreenBlocked();
+    }));
+}
+document.addEventListener('fullscreenchange', () => { if(document.fullscreenElement && document.fullscreenElement === liveV) fullscreenBlocked(); });
 async function switchTo(deviceId){
   try{ useStream(await getStream(deviceId)); }catch(e){}
 }
@@ -1067,7 +1114,7 @@ async function openLive(){
   // Camera vẫn đang mở từ lần quét trước → dùng lại ngay, không xin quyền lại
   clearTimeout(liveIdle);
   if(liveStream && liveTrack && liveTrack.readyState === 'live'){
-    $('liveVideo').play().catch(() => {});
+    camVideo().play().catch(() => {}); drawPreview();
     $('liveMsg').textContent = 'Đưa mã vạch vào trong khung';
     setupLiveControls(); liveLoop();
     return;
@@ -1143,9 +1190,10 @@ $('liveCam').onclick = async () => {
   toast('Camera: '+(next.label || ('số '+((i+1) % liveCams.length + 1))));
 };
 // Chạm vào màn hình để lấy nét vào điểm đó (Chrome Android hỗ trợ); máy khác: khởi động lại lấy nét tự động
-$('liveVideo').addEventListener('click', e => {
+['liveVideo','livePreview'].forEach(id => $(id).addEventListener('click', e => tapFocus(e)));
+function tapFocus(e){
   if(!liveTrack) return;
-  const r = $('liveVideo').getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
+  const r = camView().getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
   const ring = $('focusRing');
   Object.assign(ring.style, {left:e.clientX+'px', top:e.clientY+'px'});
   ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
@@ -1158,21 +1206,23 @@ $('liveVideo').addEventListener('click', e => {
   clearTimeout(focusTimer);
   if(adv.focusMode === 'single-shot')
     focusTimer = setTimeout(() => { liveTrack && liveTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(() => {}); }, 1500);
-});
+}
 function stopStream(){
   if(liveStream) liveStream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
   liveStream = null; liveTrack = null;
-  const v = $('liveVideo'); v.pause && v.pause(); v.srcObject = null;
+  cancelAnimationFrame(previewRaf);
+  if(liveV){ try{ liveV.pause(); liveV.srcObject = null; }catch(e){} }
 }
 function closeLive(){
   liveOn = false; clearTimeout(liveTimer); clearTimeout(focusTimer);
   if(liveTorchOn && liveTrack){ liveTrack.applyConstraints({advanced:[{torch:false}]}).catch(() => {}); }
   liveTorchOn = false;
   $('live').classList.remove('on');
-  // Giữ camera chạy ngầm 2 phút: lần quét tiếp theo mở ngay, không xin quyền lại
-  try{ $('liveVideo').pause(); }catch(e){}
+  // Giữ camera suốt lúc trang đang mở (tối đa 15 phút không quét): quét tiếp không phải xin quyền lại
+  cancelAnimationFrame(previewRaf);
+  try{ if(liveV) liveV.pause(); }catch(e){}
   clearTimeout(liveIdle);
-  liveIdle = setTimeout(stopStream, 120000);
+  liveIdle = setTimeout(stopStream, 15*60000);
 }
 // Rời khỏi app (chuyển ứng dụng, khóa màn hình) → tắt camera
 document.addEventListener('visibilitychange', () => {
@@ -1180,8 +1230,8 @@ document.addEventListener('visibilitychange', () => {
 });
 // Vùng ảnh (theo pixel của camera) tương ứng với khung quét trên màn hình
 function liveCropRect(){
-  const v = $('liveVideo'), vw = v.videoWidth, vh = v.videoHeight;
-  const er = v.getBoundingClientRect(), br = $('liveBox').getBoundingClientRect();
+  const v = camVideo(), vw = v.videoWidth, vh = v.videoHeight;
+  const er = camView().getBoundingClientRect(), br = $('liveBox').getBoundingClientRect();
   const s = Math.max(er.width / vw, er.height / vh);           // object-fit: cover
   const ox = (vw*s - er.width)/2, oy = (vh*s - er.height)/2;
   let x = (br.left - er.left + ox)/s, y = (br.top - er.top + oy)/s, w = br.width/s, h = br.height/s;
@@ -1198,13 +1248,18 @@ function validEanUpc(t){
 }
 function nextFrame(){
   if(!liveOn) return;
-  const v = $('liveVideo');
-  if(v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => liveLoop());   // đọc ngay khi có khung hình mới
-  else liveTimer = setTimeout(liveLoop, 25);
+  const v = camVideo();
+  if(!CANVAS_MODE && v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => liveLoop());   // đọc ngay khi có khung hình mới
+  else liveTimer = setTimeout(liveLoop, 30);
 }
 async function liveLoop(){
   if(!liveOn) return;
-  const v = $('liveVideo');
+  const v = camVideo();
+  // Quá 4 giây vẫn chưa có hình camera → thử chế độ khung vẽ, rồi mới báo mở bằng Safari
+  if(!v.videoWidth && liveStartAt && Date.now() - liveStartAt > 4000){
+    liveStartAt = 0;
+    if(!CANVAS_MODE) switchToCanvas(); else return noCameraView();
+  }
   if(v.readyState >= 2 && v.videoWidth && !liveBusy){
     liveBusy = true;
     try{
