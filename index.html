@@ -391,7 +391,7 @@ const $ = id => document.getElementById(id);
 const IN_GAS = !!(window.google && google.script && google.script.run);
 /* ===== DÁN LINK /exec CỦA APPS SCRIPT VÀO GIỮA HAI DẤU NHÁY Ở DÒNG DƯỚI =====
    Có link ở đây thì nhân viên mở trang là tự kết nối, không phải dán gì. */
-const DEFAULT_API = '';
+const DEFAULT_API = 'https://script.google.com/macros/s/AKfycbwJqWQViL5-LhoGl7L2sdXIrVx1nsnFOp2tVKfEhYYcqGXgaYNMQiglb4yVVDz0aLmM/exec';
 const API_KEY = 'kd91b_api';
 const apiUrl = () => store(API_KEY) || DEFAULT_API;
 function postApi(url, fn, args){
