@@ -316,7 +316,7 @@ th{background:#f6efe6;font-weight:600}
   <h3>Kết nối Google Sheet</h3>
   <p class="hint" style="margin:4px 0 8px">Dán link Apps Script của tool (dạng <b>https://script.google.com/macros/s/…/exec</b>). Chỉ cần làm 1 lần trên mỗi điện thoại.</p>
   <input id="apiUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
-  <p class="hint" id="apiMsg" style="color:var(--red)"></p>
+  <div class="hint" id="apiMsg" style="color:var(--red);line-height:1.5"></div>
   <button class="btn block" id="apiOk">Kết nối</button>
 </div></div>
 
@@ -389,8 +389,11 @@ const $ = id => document.getElementById(id);
    - Mở bằng link Apps Script → dùng google.script.run như cũ
    - Mở bằng trang web riêng (GitHub Pages…) → gửi tới link /exec của Apps Script (đã lưu khi kết nối) */
 const IN_GAS = !!(window.google && google.script && google.script.run);
+/* ===== DÁN LINK /exec CỦA APPS SCRIPT VÀO GIỮA HAI DẤU NHÁY Ở DÒNG DƯỚI =====
+   Có link ở đây thì nhân viên mở trang là tự kết nối, không phải dán gì. */
+const DEFAULT_API = '';
 const API_KEY = 'kd91b_api';
-const apiUrl = () => store(API_KEY) || '';
+const apiUrl = () => store(API_KEY) || DEFAULT_API;
 function postApi(url, fn, args){
   return fetch(url, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({fn:fn, args:args})})
     .then(r => { if(!r.ok) throw new Error('Máy chủ trả lỗi '+r.status); return r.json(); })
@@ -412,7 +415,16 @@ function askApi(msg){
       if(!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(u)) return ($('apiMsg').textContent = 'Link phải bắt đầu bằng https://script.google.com/macros/s/… và kết thúc bằng /exec');
       $('apiOk').disabled = true; $('apiOk').textContent = 'Đang kiểm tra…';
       try{ await postApi(u, 'ping', []); store(API_KEY, u); $('apiBg').classList.remove('on'); resolve(); }
-      catch(e){ $('apiMsg').textContent = 'Chưa kết nối được: '+e.message; }
+      catch(e){
+        const test = u.split('?')[0] + '?ping=1';
+        $('apiMsg').innerHTML = '<b>Chưa kết nối được</b> ('+esc(e.message)+'). Hãy kiểm tra trong Apps Script:' +
+          '<ol style="margin:6px 0;padding-left:18px;color:var(--ink)">' +
+          '<li>Đã dán <b>Code.gs mới nhất</b> (có hàm <code>doPost</code>), bấm Lưu.</li>' +
+          '<li><b>Triển khai → Quản lý các bản triển khai → ✏️ → Phiên bản mới</b>.</li>' +
+          '<li>Thực thi với tư cách: <b>Tôi</b> · Ai có quyền truy cập: <b>Bất kỳ ai</b> (không phải “Bất kỳ ai có Tài khoản Google”).</li></ol>' +
+          '<a href="'+esc(test)+'" target="_blank" rel="noopener">👉 Mở link kiểm tra</a>: thấy dòng <code>{"ok":true,…}</code> là đúng; ' +
+          'thấy trang đăng nhập Google → sai mục 3; thấy giao diện tool → chưa làm mục 1–2.';
+      }
       finally{ $('apiOk').disabled = false; $('apiOk').textContent = 'Kết nối'; }
     };
   });
