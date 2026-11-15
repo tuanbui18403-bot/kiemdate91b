@@ -1,0 +1,1726 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--bg:#faf7f2;--card:#fff;--ink:#2b2522;--muted:#857a72;--line:#ece4da;--brand:#e8772e;--brand-d:#c95f1b;
+--red:#cf3f3f;--red-bg:#fdecec;--amber:#a86c12;--amber-bg:#fdf3e0;--green:#2f8a57;--green-bg:#e8f5ee}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;padding-bottom:84px}
+header{background:var(--brand);color:#fff;padding:14px 16px 12px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+#sync{margin-left:auto;font-size:12px;font-weight:600;background:rgba(255,255,255,.22);border-radius:20px;padding:3px 9px;display:none}
+#sync.on{display:inline-block}
+header .staff{margin-top:8px;display:flex;gap:8px;align-items:center;font-size:13px;white-space:nowrap}
+header input{flex:1;border:0;border-radius:8px;padding:7px 10px;font-size:14px}
+main{max-width:720px;margin:0 auto;padding:12px 16px}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6}
+nav.tabs button{flex:1;border:0;background:none;padding:8px 0 12px;font-size:13px;color:var(--muted);cursor:pointer}
+nav.tabs button.on{color:var(--brand);font-weight:600}
+nav.tabs .ic{display:block;font-size:20px}
+.view{display:none}.view.on{display:block}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.sum{border-radius:12px;padding:10px 4px;text-align:center;border:2px solid transparent;cursor:pointer;font-size:13px}
+.sum b{display:block;font-size:22px}
+.sum.expired{background:var(--red-bg);color:var(--red)}
+.sum.soon{background:var(--amber-bg);color:var(--amber)}
+.sum.ok{background:var(--green-bg);color:var(--green)}
+.sum.sel{border-color:currentColor}
+.tools{display:flex;gap:8px;margin-bottom:10px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+.tools select{width:38%;padding-left:8px;padding-right:4px}
+.card{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--green);border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer}
+.card.expired{border-left-color:var(--red)}.card.soon{border-left-color:var(--amber)}
+.card .top{display:flex;justify-content:space-between;gap:8px}
+.card .name{font-weight:600}
+.badge{white-space:nowrap;font-size:12px;font-weight:600;padding:3px 8px;border-radius:20px;align-self:flex-start}
+.badge.expired{background:var(--red-bg);color:var(--red)}.badge.soon{background:var(--amber-bg);color:var(--amber)}.badge.ok{background:var(--green-bg);color:var(--green)}
+.meta{color:var(--muted);font-size:13px;margin-top:4px}
+.tag{display:inline-block;background:#fde7d8;color:var(--brand-d);font-size:11px;padding:1px 6px;border-radius:6px;margin-left:6px;font-weight:500}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.row{display:flex;gap:8px}.row>*{flex:1;min-width:0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;background:var(--brand);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--brand);border:1px solid var(--brand)}
+.btn.block{width:100%;margin-top:16px}
+.btn:disabled{opacity:.5}
+.check{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:14px;color:var(--ink)}
+.check input{width:auto}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.existing{background:var(--amber-bg);border-radius:10px;padding:8px 10px;font-size:13px;margin-top:8px}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:10;align-items:flex-end;justify-content:center}
+.sheet-bg.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:720px;border-radius:16px 16px 0 0;padding:16px 16px 20px;max-height:92vh;overflow:auto}
+.sheet h3{margin:0 0 4px}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.act{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 4px;font-size:13px;cursor:pointer;color:var(--ink)}
+.act.on{border-color:var(--brand);background:#fff4ec;color:var(--brand-d);font-weight:600}
+#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#2b2522;color:#fff;padding:10px 16px;border-radius:10px;font-size:14px;display:none;z-index:20;max-width:90%;text-align:center}
+.empty{text-align:center;color:var(--muted);padding:30px 0}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.stat div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:13px;color:var(--muted)}
+.stat b{display:block;font-size:20px;color:var(--ink)}
+h4{margin:18px 0 8px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;font-size:14px;border:1px solid var(--line)}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{background:#f6efe6;font-weight:600}
+.n{text-align:right}
+#live{position:fixed;inset:0;background:#000;z-index:40;display:none}
+#live.on{display:block}
+#liveVideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#liveBox{position:absolute;left:50%;top:42%;width:84%;max-width:520px;height:24%;max-height:220px;transform:translate(-50%,-50%);
+  box-shadow:0 0 0 4000px rgba(0,0,0,.5);border-radius:14px;transition:background .15s}
+#liveBox.ok{background:rgba(47,138,87,.35)}
+#liveBox b{position:absolute;width:28px;height:28px;border:4px solid #fff}
+#liveBox .c1{left:-2px;top:-2px;border-right:0;border-bottom:0;border-radius:14px 0 0 0}
+#liveBox .c2{right:-2px;top:-2px;border-left:0;border-bottom:0;border-radius:0 14px 0 0}
+#liveBox .c3{left:-2px;bottom:-2px;border-right:0;border-top:0;border-radius:0 0 0 14px}
+#liveBox .c4{right:-2px;bottom:-2px;border-left:0;border-top:0;border-radius:0 0 14px 0}
+#liveBox{overflow:visible;pointer-events:none}
+#liveBox .laser{position:absolute;left:6%;right:6%;top:10%;bottom:10%;pointer-events:none}
+#liveBox .laser::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#ff5a3c;box-shadow:0 0 8px #ff5a3c;animation:lz 1.6s ease-in-out infinite;will-change:transform}
+@keyframes lz{0%,100%{transform:translateY(0)}50%{transform:translateY(calc(min(24vh,220px) * .8 - 2px))}}
+#liveVideo{cursor:crosshair}
+#liveTip{position:absolute;left:0;right:0;top:calc(42% + min(12%,110px) + 50px);text-align:center;color:rgba(255,255,255,.75);font-size:12.5px;text-shadow:0 1px 3px #000;pointer-events:none}
+#focusRing{position:fixed;width:70px;height:70px;margin:-35px 0 0 -35px;border:2px solid #ffd54a;border-radius:50%;opacity:0;pointer-events:none;z-index:41}
+#focusRing.on{animation:fr .9s ease-out}
+@keyframes fr{0%{opacity:1;transform:scale(1.4)}40%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
+#liveMsg{pointer-events:none;position:absolute;left:0;right:0;top:calc(42% + min(12%,110px) + 22px);text-align:center;color:#fff;font-size:15px;text-shadow:0 1px 3px #000}
+#liveErr a.btn{text-decoration:none}
+#liveErr{display:none;position:absolute;left:16px;right:16px;top:30%;background:#fff;color:var(--ink);border-radius:14px;padding:16px;font-size:15px;line-height:1.5;text-align:center}
+.live-bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:14px 12px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))}
+.live-bar button{border:0;border-radius:24px;padding:11px 14px;font-size:14px;font-weight:600;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;backdrop-filter:blur(4px)}
+.live-bar button.on{background:#ffd54a;color:#222}
+.live-bar button.x{background:#fff;color:#222;width:44px;padding:11px 0}
+#busy{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:30;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#fff;font-size:15px}
+#busy.on{display:flex}
+.spin{width:36px;height:36px;border:4px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:sp 0.8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.pv{position:relative;width:fit-content;max-width:100%;margin:8px auto 0}
+#scanPreview{display:block;max-width:100%;max-height:48vh;border-radius:10px;cursor:crosshair;touch-action:manipulation}
+#tapMark{position:absolute;display:none;border:3px solid var(--brand);border-radius:8px;box-shadow:0 0 0 2000px rgba(0,0,0,.25);pointer-events:none}
+.filebox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.imp-sum{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 8px}
+.chip{font-size:13px;font-weight:600;padding:5px 10px;border-radius:20px}
+.chip.ok{background:var(--green-bg);color:var(--green)}.chip.bad{background:var(--red-bg);color:var(--red)}.chip.warn{background:var(--amber-bg);color:var(--amber)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;max-height:55vh}
+.tbl-wrap table{border:0;border-radius:0;font-size:13px;min-width:640px}
+.tbl-wrap th{position:sticky;top:0}
+.tbl-wrap tr.err td{background:#fff6f6}
+.tbl-wrap td.st{min-width:150px}
+.st .e{color:var(--red)}.st .w{color:var(--amber)}.st .o{color:var(--green)}
+.opt{font-weight:400;color:var(--muted);font-size:12px}
+.tag.nocode{background:var(--amber-bg);color:var(--amber);margin-left:0}
+.tapnote{margin:6px 0 0;font-size:14px;background:#fff4ec;border-radius:10px;padding:8px 10px}
+.tips{margin:10px 0 0;padding-left:18px;font-size:14px;line-height:1.5}
+.ico-scan{width:20px;height:20px;vertical-align:-4px;flex:0 0 auto}
+.icon-btn .ico-scan{width:24px;height:24px;vertical-align:middle}
+.icon-btn{flex:0 0 46px;border:1px solid var(--brand);background:#fff;color:var(--brand);border-radius:10px;font-size:20px;cursor:pointer;padding:0}
+.seg{display:flex;background:#efe6db;border-radius:10px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:9px 0;border-radius:8px;font-size:14px;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--brand-d);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.card.plain{border-left-color:var(--line)}
+.btn.danger{background:#fff;color:var(--red);border:1px solid var(--red)}
+.cnt{font-size:13px;color:var(--muted);white-space:nowrap}
+.tag.warn{background:var(--amber-bg);color:var(--amber)}
+.stat div.click{cursor:pointer;border:2px solid transparent}
+.stat div.click.sel{border-color:var(--brand)}
+.bar{display:flex;height:8px;border-radius:6px;overflow:hidden;background:#eee6dc;margin-top:8px}
+.bar i{display:block;height:100%}
+.bar .s{background:var(--green)}.bar .r{background:var(--red)}
+.line{font-size:13px;margin-top:6px}
+.badge.grey{background:#efe9e2;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🐾 Kiểm date sản phẩm 91B <span id="sync"></span></h1>
+  <div class="staff">Nhân viên: <input id="staff" placeholder="Nhập tên của bạn"></div>
+</header>
+
+<main>
+  <!-- DANH SÁCH -->
+  <section id="v-list" class="view on">
+    <div class="summary">
+      <div class="sum expired" data-f="expired"><b id="c-expired">–</b>Quá hạn</div>
+      <div class="sum soon" data-f="soon"><b id="c-soon">–</b>Sắp hết hạn</div>
+      <div class="sum ok" data-f="ok"><b id="c-ok">–</b>Còn hạn</div>
+    </div>
+    <div class="tools">
+      <input id="q" placeholder="Tìm tên hoặc mã vạch">
+      <button class="icon-btn" id="qScan" title="Quét mã vạch để tìm lô" aria-label="Quét mã vạch"><svg class="ico-scan" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5V5a2 2 0 0 1 2-2h2.5M16.5 3H19a2 2 0 0 1 2 2v2.5M21 16.5V19a2 2 0 0 1-2 2h-2.5M7.5 21H5a2 2 0 0 1-2-2v-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 8v8M9.5 8v8M14.5 8v8M17 8v8" stroke="currentColor" stroke-width="1.4"/><path d="M12 8v8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+    </div>
+    <div id="list"><div class="empty">Đang tải…</div></div>
+  </section>
+
+  <!-- NHẬP LÔ -->
+  <section id="v-add" class="view">
+    <div class="seg" id="aSeg">
+      <button data-a="one" class="on">Nhập từng lô</button>
+      <button data-a="file">Nhập từ file Excel</button>
+    </div>
+
+    <div id="addFile" style="display:none">
+      <div class="filebox">
+        <p style="margin:0 0 8px"><b>Bước 1.</b> Tải file mẫu, điền mỗi lô một dòng.</p>
+        <button class="btn ghost" id="btnTpl">📄 Tải file mẫu</button>
+        <p class="hint">Cột bắt buộc: <b>Tên sản phẩm</b>, <b>Hạn sử dụng</b>, <b>Số lượng</b>. <b>Mã vạch không bắt buộc</b>, có thể bổ sung sau ở tab Chỉnh sửa (nếu đã có mã trong danh mục thì được bỏ trống tên). Có thể dùng file của bạn, miễn dòng đầu là tên cột như file mẫu.</p>
+        <p style="margin:14px 0 8px"><b>Bước 2.</b> Chọn file (.xlsx, .xls, .csv)</p>
+        <input type="file" id="importFile" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+      </div>
+      <div id="impPreview"></div>
+    </div>
+
+    <div id="addOne">
+    <label>Mã vạch <span class="opt">(không bắt buộc, bổ sung sau được)</span></label>
+    <div class="row">
+      <input id="code" inputmode="numeric" placeholder="Quét, gõ mã hoặc để trống">
+      <button class="btn ghost" id="btnScan" style="flex:0 0 auto"><svg class="ico-scan" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5V5a2 2 0 0 1 2-2h2.5M16.5 3H19a2 2 0 0 1 2 2v2.5M21 16.5V19a2 2 0 0 1-2 2h-2.5M7.5 21H5a2 2 0 0 1-2-2v-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 8v8M9.5 8v8M14.5 8v8M17 8v8" stroke="currentColor" stroke-width="1.4"/><path d="M12 8v8" stroke="currentColor" stroke-width="2.4"/></svg> Quét mã</button>
+    </div>
+    <div id="existing"></div>
+
+    <label>Tên sản phẩm *</label>
+    <input id="name" list="prodNames" autocomplete="off" placeholder="Gõ để chọn sản phẩm có sẵn hoặc nhập tên mới">
+    <datalist id="prodNames"></datalist>
+    <div id="nameInfo"></div>
+
+    <div class="row">
+      <div><label>Thương hiệu</label><input id="brand" list="brandOpts" placeholder="Chọn hoặc gõ mới"></div>
+      <div><label>Nhóm hàng</label><select id="cat"></select></div>
+    </div>
+
+    <label>Hạn sử dụng *</label>
+    <input id="exp" type="date">
+    <input id="expMonth" type="month" style="display:none">
+    <label class="check"><input type="checkbox" id="monthOnly"> Bao bì chỉ in tháng/năm (tính đến cuối tháng)</label>
+
+    <label>Số lượng *</label>
+    <input id="qty" type="number" min="1" inputmode="numeric">
+    <datalist id="brandOpts"></datalist>
+
+    <label>Ảnh nhãn date (không bắt buộc)</label>
+    <input id="photoAdd" type="file" accept="image/*" capture="environment">
+
+    <button class="btn block" id="btnSave">Lưu lô hàng</button>
+    <p class="hint">Cùng sản phẩm và cùng hạn sử dụng với lô đang có sẽ tự cộng dồn số lượng.</p>
+    </div>
+  </section>
+
+  <!-- BÁO CÁO -->
+  <section id="v-report" class="view">
+    <div class="seg" id="rSeg">
+      <button data-r="track" class="on">Theo dõi cận date</button>
+      <button data-r="month">Theo tháng</button>
+    </div>
+    <div id="r-track"><div id="track"><div class="empty">Đang tải…</div></div></div>
+    <div id="r-month" style="display:none">
+      <label style="margin-top:0">Tháng</label>
+      <input id="month" type="month">
+      <div id="report"></div>
+    </div>
+  </section>
+
+  <!-- CHỈNH SỬA -->
+  <section id="v-edit" class="view">
+    <div class="seg">
+      <button data-s="prod" class="on">Sản phẩm</button>
+      <button data-s="brand">Thương hiệu</button>
+    </div>
+    <div id="s-prod">
+      <div class="tools">
+        <input id="pq" placeholder="Tìm tên, mã vạch, thương hiệu">
+        <button class="icon-btn" id="pqScan" title="Quét mã vạch để tìm sản phẩm" aria-label="Quét mã vạch"><svg class="ico-scan" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5V5a2 2 0 0 1 2-2h2.5M16.5 3H19a2 2 0 0 1 2 2v2.5M21 16.5V19a2 2 0 0 1-2 2h-2.5M7.5 21H5a2 2 0 0 1-2-2v-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 8v8M9.5 8v8M14.5 8v8M17 8v8" stroke="currentColor" stroke-width="1.4"/><path d="M12 8v8" stroke="currentColor" stroke-width="2.4"/></svg></button>
+        <select id="pBrandF"><option value="">Mọi thương hiệu</option></select>
+      </div>
+      <button class="btn block" id="btnNewProd" style="margin:0 0 10px">+ Thêm sản phẩm mới</button>
+      <div id="prodList"><div class="empty">Đang tải…</div></div>
+    </div>
+    <div id="s-brand" style="display:none">
+      <div class="row">
+        <input id="newBrand" placeholder="Tên thương hiệu mới">
+        <button class="btn" id="btnAddBrand" style="flex:0 0 auto">+ Thêm</button>
+      </div>
+      <div id="brandList" style="margin-top:10px"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-v="list" class="on"><span class="ic">📋</span>Danh sách</button>
+  <button data-v="add"><span class="ic">➕</span>Nhập lô</button>
+  <button data-v="report"><span class="ic">📊</span>Báo cáo</button>
+  <button data-v="edit"><span class="ic">✏️</span>Chỉnh sửa</button>
+</nav>
+
+<!-- Form sản phẩm -->
+<div class="sheet-bg" id="pBg"><div class="sheet">
+  <h3 id="pTitle">Sản phẩm</h3>
+  <label>Mã vạch</label>
+  <div class="row">
+    <input id="pCode" inputmode="numeric" placeholder="Để trống nếu không có">
+    <button class="btn ghost" id="pScan" style="flex:0 0 auto"><svg class="ico-scan" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5V5a2 2 0 0 1 2-2h2.5M16.5 3H19a2 2 0 0 1 2 2v2.5M21 16.5V19a2 2 0 0 1-2 2h-2.5M7.5 21H5a2 2 0 0 1-2-2v-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 8v8M9.5 8v8M14.5 8v8M17 8v8" stroke="currentColor" stroke-width="1.4"/><path d="M12 8v8" stroke="currentColor" stroke-width="2.4"/></svg> Quét mã</button>
+  </div>
+  <label>Tên sản phẩm *</label>
+  <input id="pName">
+  <div class="row">
+    <div><label>Thương hiệu</label><input id="pBrand" list="brandOpts" placeholder="Chọn hoặc gõ mới"></div>
+    <div><label>Nhóm hàng</label><select id="pCat"></select></div>
+  </div>
+  <div class="row">
+    <div><label>Giá vốn (đ)</label><input id="pCost" type="number" min="0" inputmode="numeric"></div>
+  </div>
+  <p class="hint" id="pInfo"></p>
+  <div class="row" style="margin-top:16px">
+    <button class="btn danger" id="pDel">Xóa</button>
+    <button class="btn ghost" id="pCancel">Đóng</button>
+    <button class="btn" id="pSave">Lưu</button>
+  </div>
+</div></div>
+
+<!-- Form thương hiệu -->
+<div class="sheet-bg" id="bBg"><div class="sheet">
+  <h3>Sửa thương hiệu</h3>
+  <label>Tên thương hiệu</label>
+  <input id="bName">
+  <p class="hint" id="bInfo"></p>
+  <button class="btn ghost block" id="bView" style="margin-top:8px">Xem sản phẩm của thương hiệu này</button>
+  <div class="row" style="margin-top:12px">
+    <button class="btn danger" id="bDel">Xóa</button>
+    <button class="btn ghost" id="bCancel">Đóng</button>
+    <button class="btn" id="bSave">Lưu</button>
+  </div>
+</div></div>
+
+<!-- Bảng xử lý lô -->
+<div class="sheet-bg" id="actBg"><div class="sheet">
+  <h3 id="aName"></h3>
+  <div class="meta" id="aMeta"></div>
+  <div class="actions" id="actions"></div>
+  <label id="aQtyLabel">Số lượng</label>
+  <input id="aQty" type="number" min="0" inputmode="numeric">
+  <p class="hint" id="aHint" style="margin-top:6px"></p>
+  <label>Ghi chú</label>
+  <input id="aNote" placeholder="VD: giảm 30%, móp hộp…">
+  <label>Ảnh (không bắt buộc)</label>
+  <input id="aPhoto" type="file" accept="image/*" capture="environment">
+  <div class="row" style="margin-top:16px">
+    <button class="btn ghost" id="aCancel">Đóng</button>
+    <button class="btn" id="aOk">Xác nhận</button>
+  </div>
+</div></div>
+
+<!-- Kết nối Google Sheet (chỉ khi mở bằng trang web riêng) -->
+<div class="sheet-bg" id="apiBg" style="z-index:50"><div class="sheet">
+  <h3>Kết nối Google Sheet</h3>
+  <p class="hint" style="margin:4px 0 8px">Dán link Apps Script của tool (dạng <b>https://script.google.com/macros/s/…/exec</b>). Chỉ cần làm 1 lần trên mỗi điện thoại.</p>
+  <input id="apiUrl" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off">
+  <p class="hint" id="apiMsg" style="color:var(--red)"></p>
+  <button class="btn block" id="apiOk">Kết nối</button>
+</div></div>
+
+<!-- Gán mã vạch vừa quét cho sản phẩm chưa có mã -->
+<div class="sheet-bg" id="asBg"><div class="sheet">
+  <h3>Mã <span id="asCode"></span> chưa có trong danh mục</h3>
+  <p class="hint" style="margin:4px 0 8px">Chạm vào sản phẩm <b>chưa có mã vạch</b> để gán mã này (các lô của sản phẩm cũng nhận mã), hoặc tạo sản phẩm mới.</p>
+  <input id="asQ" placeholder="Tìm sản phẩm chưa có mã vạch">
+  <div id="asList" style="margin-top:8px;max-height:42vh;overflow:auto"></div>
+  <div class="row" style="margin-top:12px">
+    <button class="btn ghost" id="asClose">Đóng</button>
+    <button class="btn" id="asNew">+ Sản phẩm mới</button>
+  </div>
+</div></div>
+
+<!-- Quét mã trực tiếp bằng camera -->
+<div id="live">
+  <video id="liveVideo" playsinline muted autoplay></video>
+  <div id="liveBox"><i class="laser"></i><b class="c1"></b><b class="c2"></b><b class="c3"></b><b class="c4"></b></div>
+  <div id="liveMsg">Đưa mã vạch vào trong khung</div>
+  <div id="liveTip">Chạm màn hình để lấy nét · Mã nhỏ: cầm cách 15–20 cm</div>
+  <i id="focusRing"></i>
+  <div id="liveErr"></div>
+  <div class="live-bar">
+    <button id="liveTorch">🔦 Đèn</button>
+    <button id="liveZoom">🔍 1x</button>
+    <button id="liveCam">🔄 Camera</button>
+    <button id="livePhoto">📸 Chụp ảnh</button>
+    <button id="liveManual">⌨️ Gõ mã</button>
+    <button id="liveClose" class="x">✕</button>
+  </div>
+</div>
+
+<!-- Dự phòng: chụp ảnh bằng camera điện thoại rồi đọc mã -->
+<input type="file" id="scanFile" accept="image/*" capture="environment" style="display:none">
+<div id="readerFile" style="position:fixed;left:-20000px;top:0;width:1700px;height:1700px;visibility:hidden"></div>
+<div id="busy"><div class="spin"></div><span id="busyText">Đang đọc mã vạch…</span></div>
+<div class="sheet-bg" id="scanBg"><div class="sheet">
+  <h3>Chưa đọc được mã vạch</h3>
+  <p class="tapnote">👆 <b>Chạm vào đúng chỗ có mã vạch</b> trong ảnh, tool sẽ phóng to vùng đó và đọc lại.</p>
+  <div class="pv"><img id="scanPreview" alt=""><i id="tapMark"></i></div>
+  <ul class="tips">
+    <li>Mã nhỏ: <b>đừng chụp quá gần</b>. Để cách khoảng <b>15–20 cm</b> cho camera nét, rồi chạm vào mã trong ảnh.</li>
+    <li>Chạm vào màn hình để camera lấy nét trước khi chụp, giữ máy thật yên.</li>
+    <li>Tránh lóa đèn trên bao bì bóng, có thể nghiêng nhẹ điện thoại.</li>
+    <li>Không được thì gõ dãy số in dưới mã vạch.</li>
+  </ul>
+  <div class="row" style="margin-top:12px">
+    <button class="btn ghost" id="scanManual">Gõ tay</button>
+    <button class="btn ghost" id="scanLive">Quét trực tiếp</button>
+    <button class="btn" id="scanRetry">📸 Chụp lại</button>
+  </div>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+const ACTIONS = [
+  {k:'Kiểm còn', l:'✅ Kiểm còn', q:'Số lượng thực tế còn trên kệ'},
+  {k:'Giảm giá', l:'🏷️ Giảm giá', q:'Số lượng đưa vào giảm giá'},
+  {k:'Đã bán',   l:'🛒 Đã bán',   q:'Số lượng đã bán'},
+  {k:'Trả NCC',  l:'↩️ Trả NCC',  q:'Số lượng trả nhà cung cấp'},
+  {k:'Hủy',      l:'🗑️ Hủy',      q:'Số lượng hủy'}
+];
+let LOTS = [], filter = '', cur = null, curAct = 'Kiểm còn', scanner = null, lookupSeq = 0;
+let CATALOG = {products:[], brands:[]}, CATS = [], editProd = null, editBrand = null, scanTarget = 'code';
+const $ = id => document.getElementById(id);
+
+/* Gọi server:
+   - Mở bằng link Apps Script → dùng google.script.run như cũ
+   - Mở bằng trang web riêng (GitHub Pages…) → gửi tới link /exec của Apps Script (đã lưu khi kết nối) */
+const IN_GAS = !!(window.google && google.script && google.script.run);
+const API_KEY = 'kd91b_api';
+const apiUrl = () => store(API_KEY) || '';
+function postApi(url, fn, args){
+  return fetch(url, {method:'POST', redirect:'follow', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify({fn:fn, args:args})})
+    .then(r => { if(!r.ok) throw new Error('Máy chủ trả lỗi '+r.status); return r.json(); })
+    .catch(e => { throw new Error(e && e.message && /json|token/i.test(e.message) ? 'Link Apps Script chưa đúng hoặc chưa cấp quyền "Bất kỳ ai"' : (e && e.message === 'Failed to fetch' ? 'Không kết nối được (kiểm tra mạng)' : (e && e.message || 'Lỗi kết nối'))); })
+    .then(j => { if(!j || !j.ok) throw new Error(j && j.error || 'Lỗi không rõ'); return j.data; });
+}
+function call(fn, ...a){
+  if(IN_GAS) return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
+  const url = apiUrl();
+  if(!url) return Promise.reject(new Error('Chưa kết nối Google Sheet'));
+  return postApi(url, fn, a);
+}
+// Màn hình kết nối (chỉ hiện ở trang web riêng, lần đầu)
+function askApi(msg){
+  return new Promise(resolve => {
+    $('apiMsg').textContent = msg || ''; $('apiUrl').value = apiUrl(); $('apiBg').classList.add('on');
+    $('apiOk').onclick = async () => {
+      const u = $('apiUrl').value.trim();
+      if(!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(u)) return ($('apiMsg').textContent = 'Link phải bắt đầu bằng https://script.google.com/macros/s/… và kết thúc bằng /exec');
+      $('apiOk').disabled = true; $('apiOk').textContent = 'Đang kiểm tra…';
+      try{ await postApi(u, 'ping', []); store(API_KEY, u); $('apiBg').classList.remove('on'); resolve(); }
+      catch(e){ $('apiMsg').textContent = 'Chưa kết nối được: '+e.message; }
+      finally{ $('apiOk').disabled = false; $('apiOk').textContent = 'Kết nối'; }
+    };
+  });
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function toast(m){ const t=$('toast'); t.textContent=m; t.style.display='block'; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display='none', 2800); }
+function vnDate(s){ if(!s) return ''; const p=s.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function daysLabel(d){ if(d==null) return 'Chưa rõ'; if(d<0) return 'Quá hạn '+(-d)+' ngày'; if(d===0) return 'Hết hạn hôm nay'; return 'Còn '+d+' ngày'; }
+function store(k, v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }catch(e){ return null; } }
+function staffName(){ const s=$('staff').value.trim(); if(!s){ toast('Vui lòng nhập tên nhân viên ở trên cùng'); $('staff').focus(); } return s; }
+function money(n){ return Math.round(n).toLocaleString('vi-VN')+' đ'; }
+
+function resizeImage(file, max=1000){
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const s = Math.min(1, max/Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); res(c.toDataURL('image/jpeg', 0.75));
+    };
+    img.onerror = rej; img.src = url;
+  });
+}
+
+/* ---- Tabs ---- */
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.toggle('on', x===b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id==='v-'+b.dataset.v));
+  if(b.dataset.v==='list') refreshIfStale();
+  if(b.dataset.v==='report'){ loadTracking(); loadReport(); }
+  if(b.dataset.v==='edit') loadCatalog();
+  window.scrollTo(0,0);
+});
+
+/* ---- Dữ liệu: lưu tạm trên máy + cập nhật ngay, đồng bộ ngầm ----
+   - Mở app: hiện ngay dữ liệu lưu tạm lần trước, rồi tải bản mới trong 1 lượt gọi (bootstrap)
+   - Mỗi thao tác ghi: server trả luôn dữ liệu mới → không phải gọi thêm
+   - Xử lý lô: cập nhật màn hình ngay, lưu ngầm phía sau */
+const CACHE_KEY = 'kd91b_cache_v1';
+let CAT_LIST = [], lastFetch = 0, pending = 0, cacheTimer = null;
+const todayStr = () => { const d = new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); };
+function saveCache(){
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(() => { try{ localStorage.setItem(CACHE_KEY, JSON.stringify({cats:CAT_LIST, lots:LOTS, catalog:CATALOG})); }catch(e){} }, 300);
+}
+function readCache(){ try{ return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); }catch(e){ return null; } }
+// Tính lại số ngày / trạng thái theo ngày hôm nay (dữ liệu lưu tạm có thể từ hôm trước)
+function recompute(l){
+  const warn = (CAT_LIST.find(c => c.name===l.cat) || {}).days || 30;
+  const t = new Date(todayStr()+'T00:00:00'), e = new Date(l.exp+'T00:00:00');
+  l.days = isNaN(e) ? null : Math.round((e - t)/86400000);
+  l.status = l.days===null ? 'ok' : l.days < 0 ? 'expired' : l.days <= warn ? 'soon' : 'ok';
+  return l;
+}
+function applyCats(cats){
+  if(!cats || !cats.length) return;
+  CAT_LIST = cats; CATS = cats.map(c => c.name);
+  const opts = CATS.map(c => '<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+  const a = $('cat').value, b = $('pCat').value;
+  $('cat').innerHTML = opts; $('pCat').innerHTML = opts;
+  if(CATS.includes(a)) $('cat').value = a; if(CATS.includes(b)) $('pCat').value = b;
+}
+function applyLots(lots){
+  LOTS = lots.slice().sort((x, y) => (x.days==null ? 99999 : x.days) - (y.days==null ? 99999 : y.days));
+  ['expired','soon','ok'].forEach(s => $('c-'+s).textContent = LOTS.filter(l => l.status===s).length);
+  render(); saveCache();
+}
+function applyCatalog(c){
+  if(!c) return;
+  CATALOG = c;
+  fillBrands(CATALOG.brands.map(b => b.name));
+  $('prodNames').innerHTML = [...new Set(CATALOG.products.map(p => p.name))].slice(0, 3000).map(n => '<option value="'+esc(n)+'">').join('');
+  if($('v-edit').classList.contains('on')){ renderProds(); renderBrands(); }
+  saveCache();
+}
+// Áp dụng dữ liệu server trả về sau khi ghi (bỏ qua nếu còn thao tác khác đang lưu, tránh ghi đè màn hình)
+// Chỉ áp dụng khi không còn thao tác nào đang lưu, để kết quả cũ không ghi đè thay đổi mới hơn trên màn hình
+function applyFresh(r){
+  if(!r || pending > 0) return;
+  if(r.catalog){ applyCatalog(r.catalog); lastCatFetch = Date.now(); }
+  if(r.lots){ applyLots(r.lots); lastFetch = Date.now(); }
+}
+function syncState(d){
+  pending = Math.max(0, pending + d);
+  const el = $('sync'); el.classList.add('on');
+  el.textContent = pending ? '⟳ Đang lưu…' : '✓ Đã lưu';
+  if(!pending) setTimeout(() => { if(!pending) el.classList.remove('on'); }, 2000);
+}
+async function loadLots(){
+  try{ applyLots(await call('getLots')); lastFetch = Date.now(); }
+  catch(e){ if(!LOTS.length) $('list').innerHTML = '<div class="empty">Lỗi tải dữ liệu: '+esc(e.message)+'</div>'; }
+}
+function refreshIfStale(){ if(!pending && Date.now() - lastFetch > 20000) loadLots(); }
+
+/* ---- Danh sách ---- */
+function render(){
+  const q = $('q').value.trim().toLowerCase();
+  const items = LOTS.filter(l => (!filter || l.status===filter) &&
+    (!q || l.name.toLowerCase().includes(q) || l.code.includes(q) || l.brand.toLowerCase().includes(q)));
+  document.querySelectorAll('.sum').forEach(s => s.classList.toggle('sel', s.dataset.f===filter));
+  const RECHECK = 3, today = new Date(); today.setHours(0,0,0,0);
+  const since = l => l.checked ? Math.round((today - new Date(l.checked+'T00:00:00'))/86400000) : null;
+  $('list').innerHTML = items.length ? items.map(l =>
+    '<div class="card '+l.status+'" data-id="'+esc(l.id)+'">' +
+      '<div class="top"><div class="name">'+esc(l.name)+(l.sale?'<span class="tag">Đang giảm giá</span>':'') +
+      (l.status!=='ok' && since(l)!==null && since(l)>=RECHECK ? '<span class="tag warn">Chưa đếm lại '+since(l)+' ngày</span>' : '')+'</div>' +
+      '<span class="badge '+l.status+'">'+daysLabel(l.days)+'</span></div>' +
+      '<div class="meta">HSD '+vnDate(l.exp)+' · SL '+l.qty+' · '+(l.brand ? esc(l.brand)+' · ' : '')+esc(l.cat) +
+      (l.checked ? ' · Kiểm '+vnDate(l.checked).slice(0,5) : '')+'</div>' +
+    '</div>').join('') : '<div class="empty">Không có lô nào phù hợp.</div>';
+}
+document.querySelectorAll('.sum').forEach(s => s.onclick = () => { filter = filter===s.dataset.f ? '' : s.dataset.f; render(); });
+$('q').oninput = render;
+$('list').onclick = e => { const c = e.target.closest('.card'); if(c) openAct(c.dataset.id); };
+
+/* ---- Xử lý lô ---- */
+function openAct(id){
+  cur = LOTS.find(l => l.id===id); if(!cur) return;
+  $('aName').textContent = cur.name;
+  $('aMeta').textContent = 'HSD '+vnDate(cur.exp)+' ('+daysLabel(cur.days)+') · SL '+cur.qty;
+  $('aNote').value = ''; $('aPhoto').value = '';
+  setAct(cur.status==='expired' ? 'Hủy' : (cur.status==='soon' && !cur.sale) ? 'Giảm giá' : 'Kiểm còn');
+  $('actBg').classList.add('on');
+}
+function setAct(k){
+  curAct = k; const a = ACTIONS.find(x => x.k===k);
+  $('actions').innerHTML = ACTIONS.map(x => '<button class="act '+(x.k===k?'on':'')+'" data-k="'+x.k+'">'+x.l+'</button>').join('');
+  $('aQtyLabel').textContent = a.q; $('aQty').value = cur.qty;
+  $('aHint').textContent = k==='Kiểm còn'
+    ? 'Đếm số thực tế trên kệ. Phần ít hơn lần trước ('+cur.qty+') sẽ tự ghi là đã bán.' : '';
+}
+$('actions').onclick = e => { const b = e.target.closest('.act'); if(b) setAct(b.dataset.k); };
+$('aCancel').onclick = () => $('actBg').classList.remove('on');
+$('actBg').onclick = e => { if(e.target===$('actBg')) $('actBg').classList.remove('on'); };
+$('aOk').onclick = async () => {
+  const s = staffName(); if(!s) return;
+  const qty = Number($('aQty').value);
+  if($('aQty').value==='' || isNaN(qty) || qty<0) return toast('Số lượng không hợp lệ');
+  if((curAct==='Hủy' || curAct==='Trả NCC') && !confirm(curAct+' '+qty+' sản phẩm "'+cur.name+'"?')) return;
+  const btn = $('aOk');
+  let photo = '';
+  const f = $('aPhoto').files[0];
+  if(f){ btn.disabled = true; btn.textContent = 'Đang xử lý ảnh…'; try{ photo = await resizeImage(f); }catch(e){} btn.disabled = false; btn.textContent = 'Xác nhận'; }
+  const lot = cur, act = curAct, prevQty = lot.qty;
+  const payload = {id:lot.id, action:act, qty:qty, staff:s, note:$('aNote').value.trim(), photo:photo};
+  // Cập nhật màn hình ngay
+  if(act==='Kiểm còn') lot.qty = qty;
+  else if(act==='Giảm giá') lot.sale = true;
+  else lot.qty = Math.max(0, lot.qty - qty);
+  lot.checked = todayStr();
+  applyLots(lot.qty===0 ? LOTS.filter(x => x!==lot) : LOTS);
+  $('actBg').classList.remove('on');
+  toast(act==='Kiểm còn' && prevQty > qty ? 'Đã kiểm: bán được '+(prevQty-qty)+' từ lần đếm trước' : 'Đã ghi nhận: '+act);
+  // Lưu ngầm
+  syncState(1);
+  call('handleLot', payload).then(r => {
+    syncState(-1); applyFresh(r);
+    if($('v-report').classList.contains('on')) loadTracking();
+  }).catch(e => {
+    syncState(-1);
+    toast('⚠ Chưa lưu được "'+lot.name+'": '+e.message+'. Danh sách đã được tải lại.');
+    loadLots();
+  });
+};
+
+/* ---- Nhập lô ---- */
+$('monthOnly').onchange = () => {
+  const m = $('monthOnly').checked;
+  $('exp').style.display = m ? 'none' : ''; $('expMonth').style.display = m ? '' : 'none';
+};
+function expValue(){
+  if($('monthOnly').checked){
+    const v = $('expMonth').value; if(!v) return '';
+    const [y, m] = v.split('-').map(Number);
+    return v+'-'+String(new Date(y, m, 0).getDate()).padStart(2,'0');
+  }
+  return $('exp').value;
+}
+async function lookup(){
+  const code = $('code').value.trim(); $('existing').innerHTML = ''; if(!code) return;
+  const seq = ++lookupSeq;
+  try{
+    const p = await call('findProduct', code); if(seq!==lookupSeq) return;
+    if(p){
+      $('name').value = p.name; if(p.cat) $('cat').value = p.cat; $('brand').value = p.brand||'';
+      const ex = LOTS.filter(l => l.code===code);
+      $('existing').innerHTML = '<div class="existing">✔ Đã có trong danh mục' + (ex.length ? '. Lô đang bán: ' +
+        ex.map(l => 'HSD '+vnDate(l.exp)+' (SL '+l.qty+')').join('; ') : '') + '</div>';
+      ($('monthOnly').checked ? $('expMonth') : $('exp')).focus();
+    } else {
+      $('existing').innerHTML = '<div class="existing">Mã mới. Gõ tên sản phẩm: nếu chọn đúng sản phẩm <b>đã có nhưng chưa có mã vạch</b>, mã này sẽ được gán cho sản phẩm đó; nếu là tên mới, tool tạo sản phẩm mới.</div>';
+      if($('name').value.trim()) $('name').dispatchEvent(new Event('change'));   // đã gõ tên trước → giữ tên, kiểm tra lại
+      else { $('brand').value = ''; $('nameInfo').innerHTML = ''; $('name').focus(); }
+    }
+  }catch(e){ toast('Lỗi: '+e.message); }
+}
+$('code').addEventListener('change', lookup);
+// Chọn / gõ tên → nhận ra sản phẩm có sẵn (kể cả sản phẩm chưa có mã vạch)
+function productByName(n){
+  n = String(n||'').trim().toLowerCase(); if(!n) return null;
+  return CATALOG.products.find(p => p.code && p.name.toLowerCase()===n) || CATALOG.products.find(p => !p.code && p.name.toLowerCase()===n) || null;
+}
+$('name').addEventListener('change', () => {
+  const p = productByName($('name').value), code = $('code').value.trim();
+  if(!p){ $('nameInfo').innerHTML = $('name').value.trim() ? '<div class="existing">Sản phẩm mới, sẽ được thêm vào danh mục'+(code ? '' : ' (chưa có mã vạch, bổ sung sau ở tab Chỉnh sửa)')+'.</div>' : ''; return; }
+  $('name').value = p.name;
+  if(p.cat && CATS.includes(p.cat)) $('cat').value = p.cat;
+  if(p.brand) $('brand').value = p.brand;
+  let msg = '✔ Đã có trong danh mục · ';
+  if(p.code && !code){ $('code').value = p.code; msg += 'mã '+esc(p.code); }
+  else if(p.code && code && code!==p.code) msg += '<b>tên này đang thuộc mã '+esc(p.code)+'</b>, mã bạn nhập sẽ tạo sản phẩm khác';
+  else if(p.code) msg += 'mã '+esc(p.code);
+  else msg += code ? '<b>mã '+esc(code)+' sẽ được gán cho sản phẩm này</b>' : 'chưa có mã vạch';
+  $('nameInfo').innerHTML = '<div class="existing">'+msg+'</div>';
+});
+$('code').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); $('code').blur(); } });
+
+$('btnSave').onclick = async () => {
+  const s = staffName(); if(!s) return;
+  const d = { code:$('code').value.trim(), name:$('name').value.trim(), cat:$('cat').value, brand:$('brand').value.trim(),
+    exp:expValue(), qty:Number($('qty').value), staff:s };
+  if(!d.name) return toast('Nhập tên sản phẩm');
+  if(!d.exp) return toast('Nhập hạn sử dụng');
+  if(!(d.qty>0)) return toast('Nhập số lượng');
+  const btn = $('btnSave');
+  const f = $('photoAdd').files[0];
+  if(f){ btn.disabled = true; btn.textContent = 'Đang xử lý ảnh…'; try{ d.photo = await resizeImage(f); }catch(e){} btn.disabled = false; btn.textContent = 'Lưu lô hàng'; }
+  const form = {code:$('code').value, name:$('name').value, brand:$('brand').value, cat:$('cat').value, exp:$('exp').value, expMonth:$('expMonth').value, qty:$('qty').value};
+  // Xóa form ngay để nhập lô tiếp theo, lưu ngầm phía sau
+  ['code','name','brand','exp','expMonth','qty','photoAdd'].forEach(id => $(id).value = '');
+  $('existing').innerHTML = ''; $('nameInfo').innerHTML = ''; $('code').focus();
+  if(d.brand) addBrandOpt(d.brand);
+  const past = new Date(d.exp+'T23:59:59') < new Date();
+  toast('Đang lưu "'+d.name+'"…' + (past ? ' (lưu ý: lô này đã quá hạn!)' : ''));
+  syncState(1);
+  call('saveLot', d).then(r => {
+    syncState(-1); applyFresh(r);
+    toast((r.merged ? 'Đã cộng dồn "'+d.name+'" vào lô cùng hạn' : 'Đã lưu lô "'+d.name+'"') + (r.assigned ? ' · đã gán mã vạch' : ''));
+  }).catch(e => {
+    syncState(-1);
+    toast('⚠ Chưa lưu được "'+d.name+'": '+e.message);
+    // Trả lại dữ liệu vào form nếu form đang trống
+    if(!$('name').value && !$('code').value){ Object.keys(form).forEach(k => $(k).value = form[k]); }
+  });
+};
+
+/* ---- Quét mã vạch ----
+   Dự phòng: mở camera của điện thoại → chụp → đọc mã. Ba bộ đọc, dùng lần lượt:
+   1) Bộ đọc có sẵn của trình duyệt (Chrome Android)
+   2) zxing-cpp (WebAssembly) — mạnh với mã nhỏ/mờ, dùng được trên iPhone
+   3) html5-qrcode — dự phòng khi 2 bộ trên không có
+   Ảnh được đọc ở độ phân giải gốc, chia thành nhiều vùng để dò mã nhỏ.
+   Nếu vẫn chưa được: người dùng chạm vào mã trong ảnh → phóng to vùng đó và đọc lại. */
+const NATIVE_FORMATS = ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','itf','codabar','qr_code','data_matrix'];
+const LIB_FORMATS = ['EAN_13','EAN_8','UPC_A','UPC_E','CODE_128','CODE_39','CODE_93','ITF','CODABAR','QR_CODE','DATA_MATRIX'];
+const ZXW_URLS = [
+  'https://cdn.jsdelivr.net/npm/zxing-wasm@2.1.0/dist/iife/reader/index.js',
+  'https://cdn.jsdelivr.net/npm/zxing-wasm@1.3.4/dist/iife/reader/index.js'
+];
+let nativeDetector, libReader, zxwPromise, zxw = null, scanImg = null, scanUrl = '';
+
+function closeScanSheet(){ $('scanBg').classList.remove('on'); $('tapMark').style.display = 'none'; if(scanUrl){ URL.revokeObjectURL(scanUrl); scanUrl = ''; } scanImg = null; }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const busy = t => { $('busyText').textContent = t; $('busy').classList.add('on'); };
+const unbusy = () => $('busy').classList.remove('on');
+
+function loadScript(src){
+  return new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    const t = setTimeout(() => rej(new Error('timeout')), 15000);
+    s.onload = () => { clearTimeout(t); res(); }; s.onerror = () => { clearTimeout(t); rej(new Error('load')); };
+    document.head.appendChild(s);
+  });
+}
+function loadZxw(){
+  if(!zxwPromise) zxwPromise = (async () => {
+    for(const u of ZXW_URLS){
+      try{
+        await loadScript(u);
+        const Z = window.ZXingWASM, fn = Z && (Z.readBarcodes || Z.readBarcodesFromImageData);
+        if(!fn) continue;
+        const api = { read: (id) => fn.call(Z, id, {tryHarder:true, maxNumberOfSymbols:1}) };
+        // Chạy thử 1 lần để tải sẵn phần WebAssembly
+        const c = document.createElement('canvas'); c.width = c.height = 8;
+        await api.read(c.getContext('2d').getImageData(0, 0, 8, 8));
+        return api;
+      }catch(e){}
+    }
+    return null;
+  })();
+  return zxwPromise;
+}
+
+function loadImage(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => res({img, url}); img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img')); };
+    img.src = url;
+  });
+}
+// Cắt vùng (x,y,w,h) của ảnh gốc, thu nhỏ nếu cạnh dài > maxSide, phóng to (tối đa 3x) nếu < minSide
+function region(img, x, y, w, h, maxSide, minSide, enhance){
+  const W = img.naturalWidth, H = img.naturalHeight;
+  x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y));
+  w = Math.round(Math.min(w, W - x)); h = Math.round(Math.min(h, H - y));
+  const m = Math.max(w, h);
+  const k = m > maxSide ? maxSide/m : (m < minSide ? Math.min(3, minSide/m) : 1);
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w*k)); c.height = Math.max(1, Math.round(h*k));
+  const ctx = c.getContext('2d', {willReadFrequently:true});
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, x, y, w, h, 0, 0, c.width, c.height);
+  if(enhance) autoLevels(c);
+  return c;
+}
+// Chuyển xám + kéo giãn tương phản (giúp ảnh tối, mờ, bị lóa nhẹ)
+function autoLevels(c){
+  const ctx = c.getContext('2d'), d = ctx.getImageData(0, 0, c.width, c.height), p = d.data, n = p.length/4;
+  const g = new Uint8ClampedArray(n), hist = new Uint32Array(256);
+  for(let i = 0; i < n; i++){ const v = (p[i*4]*299 + p[i*4+1]*587 + p[i*4+2]*114)/1000; g[i] = v; hist[g[i]]++; }
+  let lo = 0, hi = 255, acc = 0;
+  for(; lo < 255; lo++){ acc += hist[lo]; if(acc > n*0.02) break; }
+  acc = 0; for(; hi > 0; hi--){ acc += hist[hi]; if(acc > n*0.02) break; }
+  const span = Math.max(1, hi - lo);
+  for(let i = 0; i < n; i++){ const v = (g[i]-lo)*255/span; p[i*4] = p[i*4+1] = p[i*4+2] = v; }
+  ctx.putImageData(d, 0, 0);
+}
+function rotate90(c){
+  const r = document.createElement('canvas'); r.width = c.height; r.height = c.width;
+  const ctx = r.getContext('2d'); ctx.translate(r.width/2, r.height/2); ctx.rotate(Math.PI/2); ctx.drawImage(c, -c.width/2, -c.height/2);
+  return r;
+}
+const canvasToFile = c => new Promise(res => c.toBlob(b => res(new File([b], 'scan.jpg', {type:'image/jpeg'})), 'image/jpeg', 0.95));
+
+async function getNativeDetector(){
+  if(nativeDetector !== undefined) return nativeDetector;
+  nativeDetector = null;
+  try{
+    if('BarcodeDetector' in window){
+      const sup = await BarcodeDetector.getSupportedFormats();
+      const f = NATIVE_FORMATS.filter(x => sup.includes(x));
+      if(f.length) nativeDetector = new BarcodeDetector({formats:f});
+    }
+  }catch(e){}
+  return nativeDetector;
+}
+function getLibReader(){
+  if(libReader) return libReader;
+  if(typeof Html5Qrcode==='undefined') return null;
+  const F = window.Html5QrcodeSupportedFormats || {};
+  const formats = LIB_FORMATS.map(k => F[k]).filter(v => v !== undefined);
+  libReader = new Html5Qrcode('readerFile', formats.length
+    ? {formatsToSupport:formats, verbose:false, experimentalFeatures:{useBarCodeDetectorIfSupported:false}}
+    : {verbose:false});
+  return libReader;
+}
+
+// Bộ đọc nhanh (có sẵn của trình duyệt + zxing-cpp)
+async function tryFast(c){
+  const det = await getNativeDetector();
+  if(det){ try{ const r = await det.detect(c); if(r && r.length && r[0].rawValue) return r[0].rawValue; }catch(e){} }
+  if(zxw){
+    try{
+      const r = await zxw.read(c.getContext('2d').getImageData(0, 0, c.width, c.height));
+      const hit = (r || []).find(x => x && x.text && x.isValid !== false);
+      if(hit) return hit.text;
+    }catch(e){}
+  }
+  return null;
+}
+// Bộ đọc dự phòng html5-qrcode (ảnh phải ≤ 1600px để thư viện không thu nhỏ)
+async function tryLib(c){
+  const rd = getLibReader(); if(!rd) return null;
+  try{ const t = await rd.scanFile(await canvasToFile(c), false); if(t) return t; }catch(e){}
+  return null;
+}
+
+// Tự dò: cả ảnh → vùng giữa → lưới 2x2 → lưới 3x3, mỗi vùng giữ độ phân giải gốc
+async function autoDecode(img){
+  const W = img.naturalWidth, H = img.naturalHeight, regs = [[0,0,W,H],[W*0.2,H*0.25,W*0.6,H*0.5]];
+  for(const [n, f] of [[2,0.6],[3,0.45]])
+    for(let j = 0; j < n; j++) for(let i = 0; i < n; i++)
+      regs.push([(W - W*f)*i/(n-1), (H - H*f)*j/(n-1), W*f, H*f]);
+  const fast = !!(await getNativeDetector()) || !!zxw;
+  for(let k = 0; k < regs.length; k++){
+    busy('Đang đọc mã vạch… '+(k+1)+'/'+regs.length);
+    const [x,y,w,h] = regs[k];
+    const c = region(img, x, y, w, h, fast ? 2400 : 1600, 900, false);
+    const t = fast ? await tryFast(c) : await tryLib(c);
+    if(t) return t;
+    if(!fast && k === 0){ const t2 = await tryLib(rotate90(c)); if(t2) return t2; }
+  }
+  if(fast){ // thử thêm bộ dự phòng trên vài vùng chính
+    for(let k = 0; k < 3; k++){
+      busy('Đang thử cách khác…');
+      const [x,y,w,h] = regs[k];
+      const t = await tryLib(region(img, x, y, w, h, 1600, 900, true)); if(t) return t;
+    }
+  }
+  return null;
+}
+// Đọc quanh điểm người dùng chạm (tọa độ trên ảnh gốc), thử nhiều cỡ khung
+async function tapDecode(img, px, py){
+  const W = img.naturalWidth, H = img.naturalHeight, s = Math.min(W, H);
+  const sizes = [0.35, 0.22, 0.5, 0.15, 0.7];
+  let k = 0;
+  for(const f of sizes){
+    for(const [rw, rh] of [[1.5, 1], [1, 1.5]]){   // khung ngang (mã nằm ngang) và khung dọc
+      busy('Đang phóng to và đọc… '+(++k)+'/'+(sizes.length*2));
+      const w = s*f*rw, h = s*f*rh;
+      for(const enh of [false, true]){
+        const c = region(img, px - w/2, py - h/2, w, h, 1600, 1100, enh);
+        let t = await tryFast(c) || await tryLib(c);
+        if(!t && rh > rw) t = await tryLib(rotate90(c));
+        if(t) return t;
+      }
+    }
+  }
+  return null;
+}
+
+$('scanFile').onchange = async () => {
+  const f = $('scanFile').files[0]; if(!f) return;
+  busy('Đang chuẩn bị…');
+  try{
+    const z = await Promise.race([loadZxw(), sleep(8000).then(() => null)]); if(z) zxw = z;
+    const {img, url} = await loadImage(f);
+    const t = await autoDecode(img);
+    unbusy();
+    if(t){ URL.revokeObjectURL(url); gotCode(String(t).trim()); }
+    else { scanImg = img; scanUrl = url; $('scanPreview').src = url; $('tapMark').style.display = 'none'; $('scanBg').classList.add('on'); }
+  }catch(e){
+    unbusy(); toast('Không mở được ảnh, hãy chụp lại');
+  }
+  $('scanFile').value = '';
+};
+$('scanPreview').onclick = async e => {
+  if(!scanImg) return;
+  const el = $('scanPreview'), r = el.getBoundingClientRect();
+  const fx = (e.clientX - r.left)/r.width, fy = (e.clientY - r.top)/r.height;
+  const m = $('tapMark'), bw = Math.min(r.width, r.height)*0.35;
+  Object.assign(m.style, {display:'block', width:(bw*1.5)+'px', height:bw+'px',
+    left:(fx*r.width - bw*0.75)+'px', top:(fy*r.height - bw/2)+'px'});
+  const t = await tapDecode(scanImg, fx*scanImg.naturalWidth, fy*scanImg.naturalHeight);
+  unbusy();
+  if(t){ closeScanSheet(); gotCode(String(t).trim()); }
+  else toast('Vẫn chưa đọc được. Chạm đúng giữa mã vạch, hoặc chụp lại rõ hơn');
+};
+
+async function gotCode(txt){
+  if(navigator.vibrate) navigator.vibrate(80);
+  const t = scanTarget;
+  $(t).value = txt;
+  toast('Đã đọc mã: '+txt);
+  if(t==='code') lookup();
+  else if(t==='q'){
+    // Tìm lô theo mã vừa quét; nếu chỉ có 1 lô thì mở luôn để kiểm/xử lý
+    filter = ''; render();
+    const m = LOTS.filter(l => l.code===txt);
+    if(m.length===1) openAct(m[0].id);
+    else if(!m.length){
+      if(!CATALOG.products.length) await loadCatalogData();
+      const p = CATALOG.products.find(x => x.code===txt);
+      if(p) toast('Sản phẩm "'+p.name+'" không có lô nào đang bán');
+      else { $('q').value = ''; render(); openAssign(txt, 'q'); }
+    }
+  }
+  else if(t==='pq'){
+    $('pBrandF').value = ''; renderProds();
+    const m = CATALOG.products.filter(p => p.code===txt);
+    if(m.length===1) openProd(m[0]);
+    else if(!m.length){ $('pq').value = ''; renderProds(); openAssign(txt, 'pq'); }
+  }
+}
+
+/* ---- Gán mã vạch cho sản phẩm chưa có mã ---- */
+let asCode = '', asTarget = '';
+async function openAssign(code, target){
+  asCode = code; asTarget = target;
+  if(!CATALOG.products.length) await loadCatalogData();
+  $('asCode').textContent = code; $('asQ').value = '';
+  renderAssign(); $('asBg').classList.add('on');
+}
+function renderAssign(){
+  const q = $('asQ').value.trim().toLowerCase();
+  const items = CATALOG.products.filter(p => !p.code && (!q || p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)));
+  $('asList').innerHTML = items.length
+    ? items.slice(0, 150).map(p => '<div class="card plain" data-i="'+CATALOG.products.indexOf(p)+'"><div class="top"><div class="name">'+esc(p.name)+'</div>' +
+        (p.lots ? '<span class="badge ok">'+p.lots+' lô</span>' : '')+'</div><div class="meta">'+esc([p.brand, p.cat].filter(Boolean).join(' · '))+'</div></div>').join('')
+    : '<div class="empty">'+(q ? 'Không tìm thấy sản phẩm chưa có mã vạch khớp với "'+esc(q)+'".' : 'Không còn sản phẩm nào thiếu mã vạch.')+'</div>';
+}
+$('asQ').oninput = renderAssign;
+$('asClose').onclick = () => $('asBg').classList.remove('on');
+$('asBg').onclick = e => { if(e.target===$('asBg')) $('asBg').classList.remove('on'); };
+$('asList').onclick = e => {
+  const c = e.target.closest('.card'); if(!c) return;
+  const p = CATALOG.products[Number(c.dataset.i)];
+  if(!confirm('Gán mã '+asCode+' cho "'+p.name+'"?')) return;
+  // Gán ngay trên màn hình, lưu ngầm
+  const oldName = p.name;
+  p.code = asCode;
+  relinkLocalLots('', oldName, p);
+  $('asBg').classList.remove('on');
+  refreshEditViews();
+  toast('Đã gán mã '+asCode+' cho '+p.name);
+  bg('saveProduct', [{isNew:false, origCode:'', origName:oldName, code:asCode, name:p.name, cat:p.cat, brand:p.brand, cost:p.cost||''}], 'mã vạch cho "'+p.name+'"');
+  if(asTarget==='q'){
+    $('q').value = asCode; render();
+    const m = LOTS.filter(l => l.code===asCode); if(m.length===1) openAct(m[0].id);
+  } else if(asTarget==='pq'){ $('pq').value = asCode; renderProds(); }
+};
+$('asNew').onclick = () => {
+  $('asBg').classList.remove('on');
+  if(asTarget==='pq'){ openProd(null); $('pCode').value = asCode; $('pName').focus(); }
+  else { document.querySelector('nav.tabs button[data-v="add"]').click(); $('code').value = asCode; lookup(); }
+};
+
+/* ---- Quét mã vạch trực tiếp bằng camera (live scan) ----
+   - Tự chọn camera sau có lấy nét tự động (nhiều máy có 2–4 camera, chọn nhầm sẽ bị mờ), nhớ lựa chọn cho lần sau
+   - Độ phân giải cao (tới 1440p) để đọc được mã nhỏ khi cầm xa cho nét
+   - Đọc theo từng khung hình mới của camera (không chờ cố định); mã EAN/UPC hợp lệ được nhận ngay lần đầu
+   - Chạm vào màn hình để lấy nét (máy hỗ trợ), đèn flash, phóng to, đổi camera */
+const CAM_KEY = 'kd91b_cam';
+let liveStream = null, liveTrack = null, liveTimer = null, liveOn = false, liveBusy = false, liveCams = [];
+let liveLast = '', liveHits = 0, liveFrame = 0, liveZoomIdx = 0, liveZooms = [], liveTorchOn = false, liveCanvas = null, focusTimer = null;
+
+// Nút quét luôn mở chế độ quét barcode trực tiếp (đưa mã vào khung là nhận); chụp ảnh chỉ là lựa chọn phụ
+const IN_ZALO = /zalo/i.test(navigator.userAgent), IS_ANDROID = /android/i.test(navigator.userAgent);
+const liveBlocked = () => false;
+let liveIdle = null;
+function startScan(target){ scanTarget = target; openLive(); }
+// Link mở trang hiện tại bằng Safari (iPhone) / Chrome (Android) từ trong Zalo
+function externalUrl(){
+  const u = new URL(location.href);
+  if(!IN_GAS && apiUrl()) u.searchParams.set('api', apiUrl());
+  const s = u.toString();
+  return IS_ANDROID ? 'intent://'+s.replace(/^https?:\/\//, '')+'#Intent;scheme=https;package=com.android.chrome;end' : 'x-safari-'+s;
+}
+function startPhoto(target){ scanTarget = target; $('scanFile').value = ''; $('scanFile').click(); }
+$('btnScan').onclick = () => startScan('code');
+$('pScan').onclick   = () => startScan('pCode');
+$('qScan').onclick   = () => startScan('q');
+$('pqScan').onclick  = () => startScan('pq');
+$('scanRetry').onclick  = () => { closeScanSheet(); startPhoto(scanTarget); };
+$('scanLive').onclick   = () => { closeScanSheet(); openLive(); };
+$('scanManual').onclick = () => { closeScanSheet(); setTimeout(() => $(scanTarget).focus(), 50); };
+$('livePhoto').onclick  = () => { closeLive(); startPhoto(scanTarget); };
+$('liveManual').onclick = () => { closeLive(); setTimeout(() => $(scanTarget).focus(), 50); };
+$('liveClose').onclick  = closeLive;
+try{ localStorage.removeItem('kd91b_live_blocked'); }catch(e){}   // xóa ghi nhớ "chuyển sang chụp ảnh" của bản trước
+
+const capsOf = t => { try{ return (t && t.getCapabilities) ? t.getCapabilities() : {}; }catch(e){ return {}; } };
+const hasAutoFocus = t => { const c = capsOf(t); return !!(c.focusMode && c.focusMode.includes('continuous')); };
+function getStream(deviceId){
+  const v = {width:{ideal:2560}, height:{ideal:1440}, frameRate:{ideal:30}};
+  if(deviceId) v.deviceId = {exact:deviceId}; else v.facingMode = {ideal:'environment'};
+  return navigator.mediaDevices.getUserMedia({audio:false, video:v});
+}
+async function listBackCams(){
+  try{
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind==='videoinput');
+    const back = cams.filter(c => /back|rear|environment|sau|camera2 0|facing back/i.test(c.label) && !/front|trước|user/i.test(c.label));
+    return back.length ? back : cams;
+  }catch(e){ return []; }
+}
+// iPhone đời Pro: camera "ảo" Dual Wide / Triple tự chuyển sang macro khi đưa gần → nét hơn
+const IOS_PREF = [/triple/i, /dual wide/i, /bộ ba|ba ống/i, /kép góc rộng/i, /dual/i];
+async function pickBestCam(){
+  liveCams = await listBackCams();
+  if(liveCams.length < 2) return;
+  const cur = liveTrack.getSettings ? liveTrack.getSettings().deviceId : '';
+  for(const re of IOS_PREF){
+    const c = liveCams.find(x => re.test(x.label));
+    if(c){ if(c.deviceId !== cur) await switchTo(c.deviceId); return; }
+  }
+  // Android: máy báo được khả năng lấy nét → chọn camera sau có lấy nét tự động
+  if(capsOf(liveTrack).focusMode && !hasAutoFocus(liveTrack)){
+    for(const c of liveCams){
+      if(c.deviceId === cur) continue;
+      try{
+        const s = await getStream(c.deviceId);
+        if(hasAutoFocus(s.getVideoTracks()[0])){ useStream(s); return; }
+        s.getTracks().forEach(t => t.stop());
+      }catch(e){}
+    }
+  }
+}
+function useStream(s){
+  if(liveStream && liveStream !== s) liveStream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
+  liveStream = s; liveTrack = s.getVideoTracks()[0];
+  const v = $('liveVideo'); v.srcObject = s; v.play().catch(() => {});
+}
+async function switchTo(deviceId){
+  try{ useStream(await getStream(deviceId)); }catch(e){}
+}
+
+function liveError(msg){
+  $('liveErr').innerHTML = msg; $('liveErr').style.display = 'block';
+  $('liveBox').style.display = 'none'; $('liveMsg').style.display = 'none';
+  $('liveTip').style.display = 'none';
+}
+async function openLive(){
+  liveOn = true; liveLast = ''; liveHits = 0; liveFrame = 0; liveTorchOn = false;
+  $('live').classList.add('on');
+  $('liveErr').style.display = 'none'; $('liveBox').style.display = ''; $('liveMsg').style.display = ''; $('liveTip').style.display = '';
+  ['liveTorch','liveZoom','liveCam'].forEach(id => { $(id).style.display = 'none'; $(id).classList.remove('on'); });
+  loadZxw().then(z => { if(z) zxw = z; });
+  getNativeDetector();
+  // Camera vẫn đang mở từ lần quét trước → dùng lại ngay, không xin quyền lại
+  clearTimeout(liveIdle);
+  if(liveStream && liveTrack && liveTrack.readyState === 'live'){
+    $('liveVideo').play().catch(() => {});
+    $('liveMsg').textContent = 'Đưa mã vạch vào trong khung';
+    setupLiveControls(); liveLoop();
+    return;
+  }
+  $('liveMsg').textContent = 'Đang mở camera…';
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return liveError('Trình duyệt này không cho quét trực tiếp.<br>Bấm <b>📸 Chụp ảnh</b> để chụp mã vạch thay thế.');
+  const saved = store(CAM_KEY);
+  let s;
+  try{
+    try{ s = await getStream(saved || null); }
+    catch(e){ if(saved){ store(CAM_KEY, ''); s = await getStream(null); } else throw e; }
+  }catch(e){
+    const name = e && e.name || 'lỗi';
+    const blocked = ['NotAllowedError','SecurityError','NotSupportedError','TypeError'].includes(name);
+    const browser = IS_ANDROID ? 'Chrome' : 'Safari';
+    let msg;
+    if(IN_GAS && blocked)
+      msg = '<b>Link Google Apps Script không cho quét trực tiếp'+(IN_ZALO ? ' trong Zalo' : '')+'.</b><br>' +
+            'Hãy dùng <b>link trang riêng</b> (GitHub Pages) của tool để quét trực tiếp.';
+    else if(IN_ZALO && blocked)
+      msg = '<b>Zalo trên máy này chặn camera.</b><br>Mở tool bằng '+browser+' để quét trực tiếp:' +
+            '<br><a class="btn" style="margin-top:10px" href="'+esc(externalUrl())+'">Mở bằng '+browser+'</a>' +
+            '<br><span style="font-size:13px;color:var(--muted)">Hoặc bấm <b>⋯</b> góc trên → <b>Mở bằng trình duyệt</b>.</span>';
+    else if(blocked)
+      msg = '<b>Camera đang bị chặn.</b><br>Vào Cài đặt → '+browser+' → <b>Camera → Cho phép</b>, rồi bấm quét lại.';
+    else
+      msg = 'Không mở được camera. Có thể ứng dụng khác đang dùng camera — đóng ứng dụng đó rồi bấm quét lại.';
+    return liveError(msg + '<br><br><span style="font-size:13px;color:var(--muted)">Tạm thời có thể bấm <b>📸 Chụp ảnh</b> bên dưới. (Mã lỗi: '+esc(name)+')</span>');
+  }
+  if(!liveOn){ s.getTracks().forEach(t => t.stop()); return; }
+  useStream(s);
+  $('liveMsg').textContent = 'Đưa mã vạch vào trong khung';
+  liveLoop();                                   // bắt đầu đọc ngay, không chờ chọn camera
+  if(!saved){ await pickBestCam(); if(liveTrack && liveTrack.getSettings) store(CAM_KEY, liveTrack.getSettings().deviceId || ''); }
+  else liveCams = await listBackCams();
+  if(liveOn) setupLiveControls();
+}
+function setupLiveControls(){
+  const caps = capsOf(liveTrack);
+  if(caps.focusMode && caps.focusMode.includes('continuous'))
+    liveTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(() => {});
+  if(caps.torch){ $('liveTorch').style.display = ''; }
+  liveZooms = []; liveZoomIdx = 0;
+  if(caps.zoom && caps.zoom.max > caps.zoom.min){
+    const base = Math.max(1, caps.zoom.min);
+    liveZooms = [base, base*2, base*3].filter(z => z <= caps.zoom.max + 0.01);
+    if(liveZooms.length > 1){ $('liveZoom').style.display = ''; $('liveZoom').textContent = '🔍 1x'; }
+  }
+  if(liveCams.length > 1) $('liveCam').style.display = '';
+}
+$('liveTorch').onclick = () => {
+  if(!liveTrack) return;
+  liveTorchOn = !liveTorchOn;
+  liveTrack.applyConstraints({advanced:[{torch:liveTorchOn}]}).catch(() => {});
+  $('liveTorch').classList.toggle('on', liveTorchOn);
+};
+$('liveZoom').onclick = () => {
+  if(!liveTrack || liveZooms.length < 2) return;
+  liveZoomIdx = (liveZoomIdx + 1) % liveZooms.length;
+  liveTrack.applyConstraints({advanced:[{zoom:liveZooms[liveZoomIdx]}]}).catch(() => {});
+  $('liveZoom').textContent = '🔍 '+(liveZoomIdx+1)+'x';
+};
+// Đổi lần lượt các camera sau; nhớ lựa chọn cho lần sau
+$('liveCam').onclick = async () => {
+  if(liveCams.length < 2 || !liveTrack) return;
+  const cur = liveTrack.getSettings ? liveTrack.getSettings().deviceId : '';
+  const i = liveCams.findIndex(c => c.deviceId===cur), next = liveCams[(i + 1) % liveCams.length];
+  await switchTo(next.deviceId);
+  store(CAM_KEY, next.deviceId);
+  liveTorchOn = false; $('liveTorch').classList.remove('on');
+  setupLiveControls();
+  toast('Camera: '+(next.label || ('số '+((i+1) % liveCams.length + 1))));
+};
+// Chạm vào màn hình để lấy nét vào điểm đó (Chrome Android hỗ trợ); máy khác: khởi động lại lấy nét tự động
+$('liveVideo').addEventListener('click', e => {
+  if(!liveTrack) return;
+  const r = $('liveVideo').getBoundingClientRect(), x = (e.clientX - r.left)/r.width, y = (e.clientY - r.top)/r.height;
+  const ring = $('focusRing');
+  Object.assign(ring.style, {left:e.clientX+'px', top:e.clientY+'px'});
+  ring.classList.remove('on'); void ring.offsetWidth; ring.classList.add('on');
+  const caps = capsOf(liveTrack), adv = {};
+  if(caps.focusMode && caps.focusMode.includes('single-shot')) adv.focusMode = 'single-shot';
+  else if(caps.focusMode && caps.focusMode.includes('continuous')) adv.focusMode = 'continuous';
+  if('pointsOfInterest' in caps || (navigator.mediaDevices.getSupportedConstraints && navigator.mediaDevices.getSupportedConstraints().pointsOfInterest))
+    adv.pointsOfInterest = [{x, y}];
+  if(Object.keys(adv).length) liveTrack.applyConstraints({advanced:[adv]}).catch(() => {});
+  clearTimeout(focusTimer);
+  if(adv.focusMode === 'single-shot')
+    focusTimer = setTimeout(() => { liveTrack && liveTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(() => {}); }, 1500);
+});
+function stopStream(){
+  if(liveStream) liveStream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
+  liveStream = null; liveTrack = null;
+  const v = $('liveVideo'); v.pause && v.pause(); v.srcObject = null;
+}
+function closeLive(){
+  liveOn = false; clearTimeout(liveTimer); clearTimeout(focusTimer);
+  if(liveTorchOn && liveTrack){ liveTrack.applyConstraints({advanced:[{torch:false}]}).catch(() => {}); }
+  liveTorchOn = false;
+  $('live').classList.remove('on');
+  // Giữ camera chạy ngầm 2 phút: lần quét tiếp theo mở ngay, không xin quyền lại
+  try{ $('liveVideo').pause(); }catch(e){}
+  clearTimeout(liveIdle);
+  liveIdle = setTimeout(stopStream, 120000);
+}
+// Rời khỏi app (chuyển ứng dụng, khóa màn hình) → tắt camera
+document.addEventListener('visibilitychange', () => {
+  if(document.hidden){ if(liveOn) closeLive(); clearTimeout(liveIdle); stopStream(); }
+});
+// Vùng ảnh (theo pixel của camera) tương ứng với khung quét trên màn hình
+function liveCropRect(){
+  const v = $('liveVideo'), vw = v.videoWidth, vh = v.videoHeight;
+  const er = v.getBoundingClientRect(), br = $('liveBox').getBoundingClientRect();
+  const s = Math.max(er.width / vw, er.height / vh);           // object-fit: cover
+  const ox = (vw*s - er.width)/2, oy = (vh*s - er.height)/2;
+  let x = (br.left - er.left + ox)/s, y = (br.top - er.top + oy)/s, w = br.width/s, h = br.height/s;
+  x -= w*0.12; y -= h*0.2; w *= 1.24; h *= 1.4;                 // nới khung để không cắt mất mã sát mép
+  x = Math.max(0, x); y = Math.max(0, y); w = Math.min(vw - x, w); h = Math.min(vh - y, h);
+  return {x, y, w, h, vw, vh};
+}
+// Mã EAN-8 / UPC-A / EAN-13 có số kiểm tra hợp lệ → nhận ngay, không cần đọc lần 2
+function validEanUpc(t){
+  if(!/^(\d{8}|\d{12}|\d{13})$/.test(t)) return false;
+  const d = t.split('').map(Number), chk = d.pop();
+  let sum = 0; d.reverse().forEach((x, i) => { sum += x * (i % 2 === 0 ? 3 : 1); });
+  return (10 - sum % 10) % 10 === chk;
+}
+function nextFrame(){
+  if(!liveOn) return;
+  const v = $('liveVideo');
+  if(v.requestVideoFrameCallback) v.requestVideoFrameCallback(() => liveLoop());   // đọc ngay khi có khung hình mới
+  else liveTimer = setTimeout(liveLoop, 25);
+}
+async function liveLoop(){
+  if(!liveOn) return;
+  const v = $('liveVideo');
+  if(v.readyState >= 2 && v.videoWidth && !liveBusy){
+    liveBusy = true;
+    try{
+      const r = liveCropRect(), f = liveFrame++ % 4;
+      // Lần lượt: vùng khung ở độ nét gốc → vùng khung thu nhỏ (giúp mã hơi mờ) → độ nét gốc → toàn màn hình
+      const full = f === 3;
+      const sx = full ? 0 : r.x, sy = full ? 0 : r.y, sw = full ? r.vw : r.w, sh = full ? r.vh : r.h;
+      const maxSide = full ? 1280 : (f === 1 ? 800 : 2000);
+      const k = Math.min(1, maxSide / Math.max(sw, sh));
+      if(!liveCanvas) liveCanvas = document.createElement('canvas');
+      const c = liveCanvas; c.width = Math.round(sw*k); c.height = Math.round(sh*k);
+      const ctx = c.getContext('2d', {willReadFrequently:true});
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = f === 1 ? 'high' : 'low';
+      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      const fast = !!nativeDetector || !!zxw;
+      let t = fast ? await tryFast(c) : (liveFrame % 4 === 0 ? await tryLib(c) : null);
+      if(t){
+        t = String(t).trim();
+        liveHits = (t === liveLast) ? liveHits + 1 : 1; liveLast = t;
+        if(validEanUpc(t) || liveHits >= 2 || !fast){ liveBusy = false; return liveDone(t); }
+      }
+    }catch(e){}
+    liveBusy = false;
+  }
+  nextFrame();
+}
+function beep(){
+  try{
+    const A = window.AudioContext || window.webkitAudioContext; if(!A) return;
+    const ctx = beep.ctx || (beep.ctx = new A()), o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = 1500; g.gain.value = 0.15; o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime + 0.09);
+  }catch(e){}
+}
+function liveDone(code){
+  liveOn = false;                       // dừng đọc ngay
+  beep(); if(navigator.vibrate) navigator.vibrate(60);
+  $('liveBox').classList.add('ok');
+  setTimeout(() => { $('liveBox').classList.remove('ok'); closeLive(); gotCode(code); }, 150);
+}
+
+/* ---- Báo cáo ---- */
+async function loadReport(){
+  const m = $('month').value; if(!m) return;
+  $('report').innerHTML = '<div class="empty">Đang tải…</div>';
+  try{
+    const r = await call('getReport', m);
+    const acts = Object.keys(r.byAction);
+    $('report').innerHTML =
+      '<div class="stat">' +
+        '<div><b style="color:var(--red)">'+r.expired+'</b>Lô quá hạn còn trên kệ</div>' +
+        '<div><b style="color:var(--amber)">'+r.soon+'</b>Lô sắp hết hạn</div>' +
+        '<div><b>'+money(r.lossValue)+'</b>Giá trị hủy + trả NCC</div>' +
+        '<div><b>'+r.checks+'</b>Lượt kiểm / xử lý</div>' +
+      '</div>' +
+      '<h4>Theo hành động</h4>' +
+      (acts.length ? '<table><tr><th>Hành động</th><th class="n">Lượt</th><th class="n">SL</th><th class="n">Giá trị</th></tr>' +
+        acts.map(a => '<tr><td>'+esc(a)+'</td><td class="n">'+r.byAction[a].count+'</td><td class="n">'+r.byAction[a].qty+'</td><td class="n">'+(r.byAction[a].value ? money(r.byAction[a].value) : '–')+'</td></tr>').join('') +
+        '</table>' : '<div class="empty">Chưa có dữ liệu tháng này.</div>') +
+      '<h4>Hủy / trả NCC nhiều nhất</h4>' +
+      (r.top.length ? '<table><tr><th>Sản phẩm</th><th class="n">SL</th></tr>' +
+        r.top.map(t => '<tr><td>'+esc(t.name)+'</td><td class="n">'+t.qty+'</td></tr>').join('') + '</table>'
+        : '<div class="empty">Không có.</div>') +
+      '<h4>Theo nhân viên</h4>' +
+      (r.staff.length ? '<table><tr><th>Nhân viên</th><th class="n">Lượt</th></tr>' +
+        r.staff.map(t => '<tr><td>'+esc(t.name)+'</td><td class="n">'+t.count+'</td></tr>').join('') + '</table>'
+        : '<div class="empty">Không có.</div>') +
+      '<p class="hint">Giá trị hủy/trả tính theo cột "Giá vốn" trong sheet SanPham.</p>';
+  }catch(e){ $('report').innerHTML = '<div class="empty">Lỗi: '+esc(e.message)+'</div>'; }
+}
+$('month').onchange = loadReport;
+
+/* ---- Theo dõi bán hàng cận date ---- */
+const STATES = {
+  expired:    {l:'Quá hạn, chưa xử lý', c:'expired', b:'expired'},
+  notselling: {l:'Chưa bán được',       c:'expired', b:'expired'},
+  unchecked:  {l:'Cần đếm lại',         c:'soon',    b:'soon'},
+  slow:       {l:'Bán chậm',            c:'soon',    b:'soon'},
+  good:       {l:'Bán tốt',             c:'',        b:'ok'},
+  soldout:    {l:'Đã bán hết',          c:'',        b:'ok'},
+  done:       {l:'Đã xử lý',            c:'plain',   b:'grey'}
+};
+let TRACK = {items:[], recheckDays:3}, tFilter = '';
+document.querySelectorAll('#rSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#rSeg button').forEach(x => x.classList.toggle('on', x===b));
+  $('r-track').style.display = b.dataset.r==='track' ? '' : 'none';
+  $('r-month').style.display = b.dataset.r==='month' ? '' : 'none';
+});
+async function loadTracking(){
+  try{ TRACK = await call('getTracking'); renderTracking(); }
+  catch(e){ $('track').innerHTML = '<div class="empty">Lỗi: '+esc(e.message)+'</div>'; }
+}
+function renderTracking(){
+  const it = TRACK.items, act = it.filter(x => x.active);
+  const groups = {
+    active:  {l:'Lô cận date đang bán', f:x => x.active},
+    problem: {l:'Chưa bán được / quá hạn', f:x => x.state==='notselling' || x.state==='expired'},
+    unchecked: {l:'Cần đếm lại (≥'+TRACK.recheckDays+' ngày)', f:x => x.state==='unchecked'},
+    finished: {l:'Đã bán hết / xử lý (30 ngày)', f:x => !x.active}
+  };
+  const list = tFilter ? it.filter(groups[tFilter].f) : it;
+  $('track').innerHTML =
+    '<div class="stat" style="margin-top:0">' + Object.keys(groups).map(k =>
+      '<div class="click'+(tFilter===k?' sel':'')+'" data-g="'+k+'"><b>'+it.filter(groups[k].f).length+'</b>'+groups[k].l+'</div>').join('') + '</div>' +
+    (list.length ? list.map(x => {
+      const s = STATES[x.state], tot = Math.max(1, x.start);
+      let line2 = '';
+      if(x.active){
+        line2 = 'Đếm lần cuối: ' + (x.sinceCheck===0 ? 'hôm nay' : x.sinceCheck==null ? 'chưa có' : x.sinceCheck+' ngày trước');
+        if(x.state==='notselling') line2 += ' · Chưa bán được cái nào từ khi vào cận date' + (x.sale ? '' : ', nên giảm giá');
+        else if(x.state==='slow') line2 += ' · Bán ~'+x.rate+'/ngày → dự kiến <b>còn tồn '+x.projectedLeft+'</b> khi hết hạn' + (x.sale ? '' : ', nên giảm giá');
+        else if(x.state==='good') line2 += ' · Bán ~'+x.rate+'/ngày → dự kiến bán hết trước hạn';
+        else if(x.state==='unchecked') line2 += ' · Hãy đếm lại để biết đã bán bao nhiêu';
+      } else line2 = 'Hoàn tất ngày '+vnDate(x.lastCheck);
+      return '<div class="card '+s.c+'" data-id="'+esc(x.id)+'" data-a="'+(x.active?1:0)+'">' +
+        '<div class="top"><div class="name">'+esc(x.name)+(x.sale?'<span class="tag">Đang giảm giá</span>':'')+'</div>' +
+        '<span class="badge '+s.b+'">'+s.l+'</span></div>' +
+        '<div class="meta">HSD '+vnDate(x.exp)+' · '+daysLabel(x.days)+(x.brand?' · '+esc(x.brand):'')+'</div>' +
+        '<div class="bar"><i class="s" style="width:'+(x.sold/tot*100)+'%"></i><i class="r" style="width:'+(x.removed/tot*100)+'%"></i></div>' +
+        '<div class="line">Đã bán <b>'+x.sold+'</b> · Hủy/trả <b>'+x.removed+'</b> · Còn <b>'+x.remaining+'</b> / '+x.start+'</div>' +
+        '<div class="meta">'+line2+'</div></div>';
+    }).join('') : '<div class="empty">Không có lô nào.</div>') +
+    '<p class="hint">Thanh màu: xanh = đã bán, đỏ = hủy/trả NCC, xám = còn trên kệ. Chạm vào lô đang bán để đếm lại hoặc xử lý.</p>';
+}
+$('track').onclick = e => {
+  const g = e.target.closest('[data-g]');
+  if(g){ tFilter = tFilter===g.dataset.g ? '' : g.dataset.g; renderTracking(); return; }
+  const c = e.target.closest('.card');
+  if(c && c.dataset.a==='1'){
+    if(!LOTS.some(l => l.id===c.dataset.id)) return toast('Đang tải lại dữ liệu, thử lại sau giây lát');
+    openAct(c.dataset.id); setAct('Kiểm còn');
+  }
+};
+
+/* ---- Chỉnh sửa: sản phẩm & thương hiệu ---- */
+function fillBrands(names){
+  $('brandOpts').innerHTML = names.map(b => '<option value="'+esc(b)+'">').join('');
+  const sel = $('pBrandF').value;
+  $('pBrandF').innerHTML = '<option value="">Tất cả sản phẩm</option><option value="__nocode">⚠ Chưa có mã vạch</option><option value="__none">Chưa có thương hiệu</option>' +
+    names.map(b => '<option value="'+esc(b)+'"'+(b===sel?' selected':'')+'>'+esc(b)+'</option>').join('');
+  if(sel==='__none' || sel==='__nocode') $('pBrandF').value = sel;
+}
+function addBrandOpt(b){
+  const list = [...$('brandOpts').options].map(o => o.value);
+  if(!list.some(x => x.toLowerCase()===b.toLowerCase())) fillBrands([...list, b].sort((a,c) => a.localeCompare(c,'vi')));
+}
+// Tải danh mục (dùng cho gợi ý tên, gán mã vạch, nhập file)
+let lastCatFetch = 0;
+async function loadCatalogData(){
+  try{ applyCatalog(await call('getCatalog')); lastCatFetch = Date.now(); return true; }
+  catch(e){ return false; }
+}
+async function loadCatalog(){
+  // Hiện ngay danh mục đang có, tải bản mới ngầm nếu đã cũ
+  if(CATALOG.products.length || CATALOG.brands.length){ renderProds(); renderBrands(); }
+  if(Date.now() - lastCatFetch < 20000 && CATALOG.products.length) return;
+  if(!(await loadCatalogData()) && !CATALOG.products.length){ $('prodList').innerHTML = '<div class="empty">Không tải được danh mục, thử lại sau.</div>'; return; }
+  renderProds(); renderBrands();
+}
+/* Chỉnh sửa: cập nhật màn hình ngay, lưu ngầm phía sau (giống tab Danh sách) */
+const identOf = (c, n) => (c = String(c||'').trim()) ? 'c:'+c : 'n:'+String(n||'').trim().toLowerCase();
+const byNameVi = (a, b) => a.name.localeCompare(b.name, 'vi');
+// Chạy lệnh lưu ngầm; lỗi thì báo và tải lại dữ liệu thật từ server
+function bg(fn, args, label, after){
+  syncState(1);
+  call(fn, ...args).then(r => { syncState(-1); applyFresh(r); if(after) after(r); })
+    .catch(e => { syncState(-1); toast('⚠ Chưa lưu được '+label+': '+e.message+'. Đã tải lại dữ liệu.'); loadCatalogData(); loadLots(); });
+}
+function recountBrands(){
+  const m = {};
+  CATALOG.products.forEach(p => { if(p.brand){ const k = p.brand.toLowerCase(); m[k] = (m[k]||0) + 1; } });
+  CATALOG.brands.forEach(b => { b.count = m[b.name.toLowerCase()] || 0; });
+  CATALOG.brands.sort(byNameVi);
+}
+function ensureBrandLocal(name){
+  if(!name) return '';
+  const ex = CATALOG.brands.find(b => b.name.toLowerCase()===name.toLowerCase());
+  if(ex) return ex.name;
+  CATALOG.brands.push({name:name, count:0}); return name;
+}
+// Cập nhật các lô của sản phẩm (đổi mã / tên / nhóm / thương hiệu) ngay trên màn hình
+function relinkLocalLots(oldCode, oldName, p){
+  const k = identOf(oldCode, oldName);
+  let n = 0;
+  LOTS.forEach(l => { if(identOf(l.code, l.name)===k){ l.code = p.code; l.name = p.name; l.cat = p.cat; l.brand = p.brand; recompute(l); n++; } });
+  if(n) applyLots(LOTS);
+}
+function refreshEditViews(){ recountBrands(); CATALOG.products.sort(byNameVi); applyCatalog(CATALOG); renderProds(); renderBrands(); }
+
+let prodTimer = null;
+function renderProds(){
+  const q = $('pq').value.trim().toLowerCase(), b = $('pBrandF').value;
+  const items = CATALOG.products.filter(p =>
+    (!b || (b==='__none' ? !p.brand : b==='__nocode' ? !p.code : p.brand===b)) &&
+    (!q || p.name.toLowerCase().includes(q) || p.code.includes(q) || p.brand.toLowerCase().includes(q)));
+  const idx = new Map(CATALOG.products.map((p, i) => [p, i]));
+  const shown = items.slice(0, 200), noCode = CATALOG.products.filter(p => !p.code).length;
+  $('prodList').innerHTML = items.length
+    ? '<p class="hint" style="margin:0 0 8px">'+items.length+' sản phẩm'+(items.length>200?' (hiện 200, hãy tìm để lọc thêm)':'') +
+      (noCode && b!=='__nocode' ? ' · <a href="#" id="showNoCode">'+noCode+' sản phẩm chưa có mã vạch</a>' : '')+'</p>' +
+      shown.map(p => '<div class="card plain" data-i="'+idx.get(p)+'">' +
+        '<div class="top"><div class="name">'+esc(p.name)+'</div>'+(p.lots ? '<span class="badge ok">'+p.lots+' lô</span>' : '')+'</div>' +
+        '<div class="meta">'+(p.code ? '' : '<span class="tag nocode">Chưa có mã vạch</span> ')+[p.brand||'Chưa có thương hiệu', p.cat, p.code, p.cost ? money(p.cost) : ''].filter(Boolean).map(esc).join(' · ')+'</div>' +
+      '</div>').join('')
+    : '<div class="empty">Không có sản phẩm nào.</div>';
+  if($('showNoCode')) $('showNoCode').onclick = e => { e.preventDefault(); $('pBrandF').value = '__nocode'; renderProds(); };
+}
+function renderBrands(){
+  $('brandList').innerHTML = CATALOG.brands.length
+    ? CATALOG.brands.map((b,i) => '<div class="card plain" data-b="'+i+'"><div class="top"><div class="name">'+esc(b.name)+'</div>' +
+        '<span class="cnt">'+b.count+' sản phẩm</span></div></div>').join('')
+    : '<div class="empty">Chưa có thương hiệu nào. Thêm ở ô phía trên.</div>';
+}
+function setSeg(s){
+  document.querySelectorAll('#v-edit .seg button').forEach(x => x.classList.toggle('on', x.dataset.s===s));
+  $('s-prod').style.display = s==='prod' ? '' : 'none';
+  $('s-brand').style.display = s==='brand' ? '' : 'none';
+}
+document.querySelectorAll('#v-edit .seg button').forEach(b => b.onclick = () => setSeg(b.dataset.s));
+$('pq').oninput = () => { clearTimeout(prodTimer); prodTimer = setTimeout(renderProds, 120); };   // gõ tìm không bị giật
+$('pBrandF').onchange = renderProds;
+$('prodList').onclick = e => { const c = e.target.closest('.card'); if(c) openProd(CATALOG.products[Number(c.dataset.i)]); };
+$('btnNewProd').onclick = () => openProd(null);
+
+function openProd(p){
+  editProd = p;
+  $('pTitle').textContent = p ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới';
+  $('pCode').value = p ? p.code : '';
+  $('pName').value = p ? p.name : '';
+  $('pBrand').value = p ? p.brand : ($('pBrandF').value && !$('pBrandF').value.startsWith('__') ? $('pBrandF').value : '');
+  $('pCat').value = p && CATS.includes(p.cat) ? p.cat : (CATS[0]||'');
+  $('pCost').value = p && p.cost ? p.cost : '';
+  $('pInfo').textContent = (p && !p.code ? 'Sản phẩm chưa có mã vạch: quét hoặc gõ mã rồi bấm Lưu để bổ sung. ' : '') +
+    (p && p.lots ? 'Sản phẩm đang có '+p.lots+' lô. Đổi mã vạch, tên hoặc nhóm hàng sẽ cập nhật luôn các lô đó.' : '');
+  $('pDel').style.display = p ? '' : 'none';
+  $('pBg').classList.add('on');
+  if(!p) $('pCode').focus();
+}
+function closeProd(){ $('pBg').classList.remove('on'); }
+$('pCancel').onclick = closeProd;
+$('pBg').onclick = e => { if(e.target===$('pBg')) closeProd(); };
+$('pSave').onclick = () => {
+  const p0 = editProd;
+  const d = { isNew:!p0, origCode: p0 ? p0.code : '', origName: p0 ? p0.name : '',
+    code:$('pCode').value.trim(), name:$('pName').value.trim(), brand:$('pBrand').value.trim(), cat:$('pCat').value,
+    cost:$('pCost').value };
+  if(!d.name) return toast('Nhập tên sản phẩm');
+  // Kiểm tra trùng ngay trên máy
+  const dup = CATALOG.products.find(x => x!==p0 && identOf(x.code, x.name)===identOf(d.code, d.name));
+  if(dup) return toast(d.code ? 'Mã vạch này đã thuộc sản phẩm: '+dup.name : 'Đã có sản phẩm cùng tên (chưa có mã vạch)');
+  // Cập nhật màn hình ngay
+  const brand = ensureBrandLocal(d.brand);
+  const vals = {code:d.code, name:d.name, cat:d.cat || 'Khác', brand:brand, cost:Number(d.cost)||0};
+  if(p0){ Object.assign(p0, vals); relinkLocalLots(d.origCode, d.origName, p0); }
+  else CATALOG.products.push(Object.assign({supplier:'', lots:0}, vals));
+  closeProd(); refreshEditViews();
+  toast(d.isNew ? 'Đã thêm sản phẩm' : 'Đã lưu thay đổi');
+  bg('saveProduct', [d], 'sản phẩm "'+d.name+'"');
+};
+$('pDel').onclick = () => {
+  const p = editProd; if(!p) return;
+  if(p.lots) return toast('Sản phẩm còn '+p.lots+' lô đang bán. Xử lý hết các lô trước khi xóa.');
+  if(!confirm('Xóa sản phẩm "'+p.name+'" khỏi danh mục?')) return;
+  CATALOG.products = CATALOG.products.filter(x => x!==p);
+  closeProd(); refreshEditViews(); toast('Đã xóa sản phẩm');
+  bg('deleteProduct', [{code:p.code, name:p.name}], 'việc xóa "'+p.name+'"');
+};
+
+$('btnAddBrand').onclick = () => {
+  const name = $('newBrand').value.trim(); if(!name) return toast('Nhập tên thương hiệu');
+  const ex = CATALOG.brands.find(b => b.name.toLowerCase()===name.toLowerCase());
+  if(ex) return toast('Thương hiệu "'+ex.name+'" đã có');
+  CATALOG.brands.push({name:name, count:0});
+  $('newBrand').value = ''; refreshEditViews(); toast('Đã thêm thương hiệu');
+  bg('saveBrand', [{old:'', name:name}], 'thương hiệu "'+name+'"');
+};
+$('newBrand').addEventListener('keydown', e => { if(e.key==='Enter') $('btnAddBrand').click(); });
+$('brandList').onclick = e => {
+  const c = e.target.closest('.card'); if(!c) return;
+  editBrand = CATALOG.brands[Number(c.dataset.b)];
+  $('bName').value = editBrand.name;
+  $('bInfo').textContent = editBrand.count
+    ? editBrand.count+' sản phẩm thuộc thương hiệu này. Đổi tên sẽ cập nhật cho tất cả các sản phẩm đó.'
+    : 'Chưa có sản phẩm nào thuộc thương hiệu này.';
+  $('bView').style.display = editBrand.count ? '' : 'none';
+  $('bBg').classList.add('on');
+};
+function closeBrand(){ $('bBg').classList.remove('on'); }
+$('bCancel').onclick = closeBrand;
+$('bBg').onclick = e => { if(e.target===$('bBg')) closeBrand(); };
+$('bView').onclick = () => { closeBrand(); $('pq').value = ''; fillBrands(CATALOG.brands.map(b => b.name)); $('pBrandF').value = editBrand.name; setSeg('prod'); renderProds(); };
+$('bSave').onclick = () => {
+  const b = editBrand, name = $('bName').value.trim(); if(!name) return toast('Nhập tên thương hiệu');
+  if(name===b.name) return closeBrand();
+  const ex = CATALOG.brands.find(x => x!==b && x.name.toLowerCase()===name.toLowerCase());
+  if(ex) return toast('Thương hiệu "'+ex.name+'" đã có');
+  const old = b.name;
+  CATALOG.products.forEach(p => { if(p.brand===old) p.brand = name; });
+  LOTS.forEach(l => { if(l.brand===old) l.brand = name; });
+  b.name = name;
+  closeBrand(); refreshEditViews(); applyLots(LOTS); toast('Đã lưu thương hiệu');
+  bg('saveBrand', [{old:old, name:name}], 'thương hiệu "'+name+'"');
+};
+$('bDel').onclick = () => {
+  const b = editBrand;
+  if(b.count) return toast('Còn '+b.count+' sản phẩm thuộc thương hiệu này. Đổi thương hiệu cho các sản phẩm đó trước.');
+  if(!confirm('Xóa thương hiệu "'+b.name+'"?')) return;
+  CATALOG.brands = CATALOG.brands.filter(x => x!==b);
+  closeBrand(); refreshEditViews(); toast('Đã xóa thương hiệu');
+  bg('deleteBrand', [b.name], 'việc xóa thương hiệu "'+b.name+'"');
+};
+
+/* ---- Nhập lô từ file Excel / CSV ---- */
+const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const TPL_HEAD = ['Mã vạch','Tên sản phẩm','Thương hiệu','Nhóm hàng','Hạn sử dụng','Số lượng'];
+const COL_ALIASES = {
+  code:     ['ma vach','barcode','ma sp','ma san pham','ma hang','ma','sku','ean'],
+  name:     ['ten san pham','ten sp','ten hang','ten hang hoa','san pham','ten','product','product name'],
+  brand:    ['thuong hieu','brand','nhan hieu'],
+  cat:      ['nhom hang','nhom','loai hang','loai','danh muc','category'],
+  exp:      ['han su dung','hsd','han dung','ngay het han','het han','exp','expiry','expiry date','date'],
+  qty:      ['so luong','sl','qty','quantity','sl ton']
+};
+let xlsxPromise, IMP = [];
+
+document.querySelectorAll('#aSeg button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#aSeg button').forEach(x => x.classList.toggle('on', x===b));
+  $('addOne').style.display  = b.dataset.a==='one'  ? '' : 'none';
+  $('addFile').style.display = b.dataset.a==='file' ? '' : 'none';
+  if(b.dataset.a==='file') loadXlsx();
+});
+function loadXlsx(){
+  if(!xlsxPromise) xlsxPromise = loadScript(XLSX_URL).then(() => window.XLSX).catch(e => { xlsxPromise = null; throw e; });
+  return xlsxPromise;
+}
+function normHead(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/đ/g,'d')
+    .replace(/\(.*?\)/g,' ').replace(/[*:_.\-\/]/g,' ').replace(/\s+/g,' ').trim();
+}
+// Tìm dòng tiêu đề (trong 10 dòng đầu) và vị trí từng cột
+function mapColumns(aoa){
+  for(let r = 0; r < Math.min(10, aoa.length); r++){
+    const heads = (aoa[r]||[]).map(normHead), map = {};
+    const used = new Set();
+    for(const pass of [2, 1]){
+      for(const f of Object.keys(COL_ALIASES)){
+        if(map[f] !== undefined) continue;
+        heads.forEach((h, i) => {
+          if(map[f] !== undefined || used.has(i) || !h) return;
+          const hit = COL_ALIASES[f].some(a => pass===2 ? h===a : (a.length >= 6 && h.includes(a)));
+          if(hit){ map[f] = i; used.add(i); }
+        });
+      }
+    }
+    if(map.exp !== undefined && map.qty !== undefined && (map.name !== undefined || map.code !== undefined)) return {row:r, map};
+  }
+  return null;
+}
+const pad2 = n => String(n).padStart(2,'0');
+function validYMD(y, m, d){
+  if(y < 100) y += 2000;
+  if(!(y>=2000 && y<=2100 && m>=1 && m<=12 && d>=1)) return '';
+  if(d > new Date(y, m, 0).getDate()) return '';
+  return y+'-'+pad2(m)+'-'+pad2(d);
+}
+const endOfMonth = (y, m) => validYMD(y<100?y+2000:y, m, new Date(y<100?y+2000:y, m, 0).getDate());
+function parseDate(v){
+  if(v===null || v===undefined || v==='') return '';
+  if(v instanceof Date && !isNaN(v)) return validYMD(v.getFullYear(), v.getMonth()+1, v.getDate());
+  if(typeof v === 'number'){
+    if(v > 20000 && v < 80000){ // số ngày kiểu Excel
+      const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v)*86400000);
+      return validYMD(d.getUTCFullYear(), d.getUTCMonth()+1, d.getUTCDate());
+    }
+    v = String(v);
+  }
+  const s = String(v).trim().replace(/\s+/g,'');
+  let m;
+  if((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/))) return validYMD(+m[1], +m[2], +m[3]);
+  if((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2}|\d{4})$/))) return validYMD(+m[3], +m[2], +m[1]);
+  if((m = s.match(/^(\d{1,2})[-\/.](\d{4}|\d{2})$/))) return endOfMonth(+m[2], +m[1]);   // tháng/năm
+  if((m = s.match(/^(\d{4})[-\/.](\d{1,2})$/))) return endOfMonth(+m[1], +m[2]);
+  if((m = s.match(/^\d{8}$/))){
+    const a = validYMD(+s.slice(0,4), +s.slice(4,6), +s.slice(6,8));   // yyyymmdd
+    return a || validYMD(+s.slice(4,8), +s.slice(2,4), +s.slice(0,2)); // ddmmyyyy
+  }
+  return '';
+}
+function parseQty(v){
+  if(typeof v === 'number') return v;
+  const s = String(v||'').trim(); if(!s) return NaN;
+  return /^[\d.,\s]+$/.test(s) ? Number(s.replace(/[.,\s]/g,'')) : NaN;
+}
+function cleanCode(v){
+  if(v===null || v===undefined) return {code:''};
+  if(typeof v === 'number') return Number.isInteger(v) && v < 1e16 ? {code:String(v)} : {code:'', err:'Mã vạch bị Excel làm tròn — định dạng cột Mã vạch là "Văn bản"'};
+  const s = String(v).trim().replace(/^'/,'').replace(/\s+/g,'');
+  if(/^\d+(\.\d+)?e\+\d+$/i.test(s)) return {code:'', err:'Mã vạch bị Excel đổi thành dạng '+s+' — định dạng cột Mã vạch là "Văn bản"'};
+  return {code:s};
+}
+
+$('btnTpl').onclick = async () => {
+  try{
+    const X = await loadXlsx();
+    const ex1 = new Date(); ex1.setMonth(ex1.getMonth()+8);
+    const fmt = d => pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+d.getFullYear();
+    const cols = [{wch:16},{wch:32},{wch:16},{wch:20},{wch:14},{wch:10}];
+    const ws = X.utils.aoa_to_sheet([TPL_HEAD]); ws['!cols'] = cols;
+    const ex = X.utils.aoa_to_sheet([['VÍ DỤ (không nhập trang này — điền vào trang "Nhap lo")'], TPL_HEAD,
+      ['8934567890123','Pate Whiskas cá ngừ 85g','Whiskas', CATS[0]||'Pate / đồ ướt', fmt(ex1), 24],
+      ['','Hạt Royal Canin Kitten 2kg','Royal Canin','Thức ăn hạt', '12/2027', 6]]); ex['!cols'] = cols;
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, 'Nhap lo');
+    X.utils.book_append_sheet(wb, ex, 'Vi du');
+    X.utils.book_append_sheet(wb, X.utils.aoa_to_sheet([['Nhóm hàng hợp lệ'], ...CATS.map(c => [c])]), 'Nhom hang');
+    X.writeFile(wb, 'Mau_nhap_lo_kiem_date.xlsx');
+  }catch(e){ toast('Không tải được file mẫu trên máy này. Hãy dùng file mẫu được gửi kèm.'); }
+};
+
+$('importFile').onchange = async () => {
+  const f = $('importFile').files[0]; if(!f) return;
+  busy('Đang đọc file…');
+  try{
+    const X = await loadXlsx();
+    let wb;
+    if(/\.csv$/i.test(f.name)) wb = X.read(await f.text(), {type:'string', raw:true});
+    else wb = X.read(await f.arrayBuffer(), {type:'array'});
+    let found = null, aoa = null;
+    for(const n of wb.SheetNames){
+      aoa = X.utils.sheet_to_json(wb.Sheets[n], {header:1, raw:true, defval:''});
+      found = mapColumns(aoa); if(found) break;
+    }
+    if(!found){ unbusy(); $('impPreview').innerHTML = '<div class="empty">Không tìm thấy các cột cần thiết. Dòng tiêu đề cần có ít nhất: <b>Tên sản phẩm</b> (hoặc Mã vạch), <b>Hạn sử dụng</b>, <b>Số lượng</b>.</div>'; return; }
+    if(!CATALOG.products.length){ try{ CATALOG = await call('getCatalog'); }catch(e){} }
+    const byCode = {}, byName = {};
+    CATALOG.products.forEach(p => { if(p.code){ byCode[p.code] = p; byName[p.name.toLowerCase()] = p; } });
+    CATALOG.products.forEach(p => { const k = p.name.toLowerCase(); if(!p.code && !byName[k]) byName[k] = p; });
+    const M = found.map, get = (r, k) => M[k] === undefined ? '' : r[M[k]];
+    IMP = [];
+    aoa.slice(found.row + 1).forEach((r, i) => {
+      if(!r.some(v => String(v).trim() !== '')) return;
+      const c = cleanCode(get(r,'code'));
+      const row = { line: found.row + i + 2, code: c.code, name: String(get(r,'name')).trim(), brand: String(get(r,'brand')).trim(),
+        cat: String(get(r,'cat')).trim(), exp: parseDate(get(r,'exp')),
+        qty: parseQty(get(r,'qty')), rawExp: String(get(r,'exp')), err: [], warn: [] };
+      const pc = row.code && byCode[row.code], pn = row.name && byName[row.name.toLowerCase()];
+      const p = pc || (pn && (!row.code || !pn.code) ? pn : null);
+      if(c.err) row.err.push(c.err);
+      if(!row.exp) row.err.push(row.rawExp ? 'Không hiểu hạn "'+row.rawExp+'"' : 'Thiếu hạn sử dụng');
+      if(!(row.qty > 0) || !Number.isInteger(row.qty)) row.err.push('Số lượng không hợp lệ');
+      if(p){
+        row.shown = p.name; row.known = true;
+        if(row.code && !p.code) row.warn.push('Gán mã '+row.code+' cho sản phẩm có sẵn');
+      } else {
+        row.shown = row.name;
+        if(!row.name) row.err.push(row.code ? 'Mã mới, cần tên sản phẩm' : 'Thiếu tên sản phẩm');
+        else row.warn.push(row.code ? 'SP mới' : 'SP mới (chưa có mã vạch)');
+        if(row.cat && !CATS.includes(row.cat)) row.warn.push('Nhóm "'+row.cat+'" chưa có → "Khác"');
+      }
+      if(row.exp && new Date(row.exp+'T23:59:59') < new Date()) row.warn.push('Đã quá hạn');
+      IMP.push(row);
+    });
+    unbusy(); renderImport();
+  }catch(e){
+    unbusy();
+    $('impPreview').innerHTML = '<div class="empty">Không đọc được file: '+esc(e.message||e)+'. Hãy lưu lại dạng .xlsx hoặc .csv (UTF-8) rồi thử lại.</div>';
+  }
+  $('importFile').value = '';
+};
+
+function renderImport(onlyErr){
+  const ok = IMP.filter(r => !r.err.length), bad = IMP.length - ok.length;
+  const newP = ok.filter(r => r.warn.some(w => w.startsWith('SP mới'))).length;
+  const rows = (onlyErr ? IMP.filter(r => r.err.length) : IMP);
+  const shown = rows.slice(0, 500);
+  $('impPreview').innerHTML = !IMP.length ? '<div class="empty">File không có dòng dữ liệu nào.</div>' :
+    '<div class="imp-sum"><span class="chip ok">'+ok.length+' dòng hợp lệ</span>' +
+    (newP ? '<span class="chip warn">'+newP+' sản phẩm mới</span>' : '') +
+    (bad ? '<span class="chip bad">'+bad+' dòng lỗi (sẽ bỏ qua)</span>' : '') + '</div>' +
+    (bad ? '<label class="check" style="margin:0 0 8px"><input type="checkbox" id="impOnlyErr"'+(onlyErr?' checked':'')+'> Chỉ xem dòng lỗi</label>' : '') +
+    '<div class="tbl-wrap"><table><tr><th>Dòng</th><th>Trạng thái</th><th>Tên sản phẩm</th><th>HSD</th><th class="n">SL</th><th>Mã vạch</th></tr>' +
+    shown.map(r => '<tr class="'+(r.err.length?'err':'')+'"><td>'+r.line+'</td><td class="st">' +
+      (r.err.length ? r.err.map(x => '<div class="e">✗ '+esc(x)+'</div>').join('') : '<div class="o">✓ '+(r.known?'Đã có trong danh mục':'Hợp lệ')+'</div>') +
+      r.warn.map(x => '<div class="w">⚠ '+esc(x)+'</div>').join('') + '</td><td style="min-width:150px">'+esc(r.shown||'')+'</td>' +
+      '<td>'+(r.exp ? vnDate(r.exp) : esc(r.rawExp))+'</td><td class="n">'+(isNaN(r.qty)?'':r.qty)+'</td><td>'+esc(r.code)+'</td></tr>').join('') +
+    '</table></div>' + (rows.length > 500 ? '<p class="hint">Đang hiện 500/'+rows.length+' dòng.</p>' : '') +
+    (ok.length ? '<button class="btn block" id="btnImport">Nhập '+ok.length+' lô hợp lệ</button>' : '') +
+    '<p class="hint">Lô cùng sản phẩm, cùng hạn với lô đang có sẽ được cộng dồn số lượng. Sản phẩm đã có trong danh mục giữ nguyên tên và nhóm hàng.</p>';
+  if($('impOnlyErr')) $('impOnlyErr').onchange = e => renderImport(e.target.checked);
+  if($('btnImport')) $('btnImport').onclick = doImport;
+}
+
+async function doImport(){
+  const s = staffName(); if(!s) return;
+  const ok = IMP.filter(r => !r.err.length);
+  if(!confirm('Nhập '+ok.length+' lô vào hệ thống?')) return;
+  const payload = ok.map(r => ({line:r.line, code:r.code, name:r.name, brand:r.brand, cat:r.cat, exp:r.exp, qty:r.qty}));
+  const tot = {added:0, merged:0, newProducts:0, assigned:0, errors:[]}, CH = 200;
+  let done = 0, last = null;
+  try{
+    for(let i = 0; i < payload.length; i += CH){
+      busy('Đang nhập… '+Math.min(i+CH, payload.length)+'/'+payload.length);
+      const r = await call('importLots', payload.slice(i, i+CH), s, i); last = r;
+      tot.added += r.added; tot.merged += r.merged; tot.newProducts += r.newProducts; tot.assigned += (r.assigned||0); tot.errors.push(...r.errors);
+      done = Math.min(i+CH, payload.length);
+    }
+    unbusy();
+    $('impPreview').innerHTML = '<div class="filebox" style="margin-top:14px"><h4 style="margin:0 0 8px">✅ Đã nhập xong</h4>' +
+      '<div>• Lô mới: <b>'+tot.added+'</b></div><div>• Cộng dồn vào lô đã có: <b>'+tot.merged+'</b></div>' +
+      '<div>• Sản phẩm mới thêm vào danh mục: <b>'+tot.newProducts+'</b></div>' +
+      (tot.assigned ? '<div>• Bổ sung mã vạch cho sản phẩm có sẵn: <b>'+tot.assigned+'</b></div>' : '') +
+      (tot.errors.length ? '<div style="margin-top:8px;color:var(--red)">Không nhập được '+tot.errors.length+' dòng:</div>' +
+        tot.errors.slice(0,50).map(e => '<div class="hint" style="margin:2px 0">Dòng '+e.line+': '+esc(e.msg)+'</div>').join('') : '') +
+      '</div>';
+    IMP = []; applyFresh(last);
+  }catch(e){
+    unbusy();
+    // Bỏ các dòng đã nhập thành công khỏi danh sách để bấm nhập lại không bị trùng
+    const doneLines = new Set(payload.slice(0, done).map(r => r.line));
+    IMP = IMP.filter(r => !doneLines.has(r.line));
+    renderImport();
+    toast('Lỗi khi nhập: '+e.message+(done ? '. Đã lưu '+done+' dòng, bấm Nhập để tiếp tục phần còn lại.' : ''));
+    if(done) loadLots();
+  }
+}
+
+/* ---- Khởi động ---- */
+(async function init(){
+  $('staff').value = store('staff') || '';
+  $('staff').onchange = () => store('staff', $('staff').value.trim());
+  const now = new Date();
+  $('month').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  // 0) Trang web riêng: lấy link Apps Script từ đường link (?api=…) hoặc hỏi lần đầu
+  if(!IN_GAS){
+    const q = new URLSearchParams(location.search).get('api');
+    if(q){ store(API_KEY, q.trim()); history.replaceState(null, '', location.pathname); }
+    if(!apiUrl()) await askApi('');
+  }
+  // 1) Hiện ngay dữ liệu lưu tạm lần trước (nếu có)
+  const c = readCache();
+  if(c && c.lots){
+    applyCats(c.cats || []);
+    if(c.catalog) applyCatalog(c.catalog);
+    applyLots(c.lots.map(recompute));
+  }
+  // 2) Tải dữ liệu mới nhất trong 1 lượt gọi
+  try{
+    const b = await call('bootstrap');
+    applyCats(b.cats); applyCatalog(b.catalog); applyLots(b.lots);
+    lastFetch = lastCatFetch = Date.now();
+  }catch(e){
+    if(c && c.lots) toast('Chưa kết nối được, đang hiện dữ liệu lưu tạm');
+    else $('list').innerHTML = '<div class="empty">Lỗi tải dữ liệu: '+esc(e.message)+'</div>';
+  }
+  setTimeout(() => loadZxw().then(z => { if(z) zxw = z; }), 1500);
+})();
+</script>
+</body>
+</html>
