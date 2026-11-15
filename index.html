@@ -90,6 +90,10 @@ th{background:#f6efe6;font-weight:600}
 @keyframes fr{0%{opacity:1;transform:scale(1.4)}40%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
 #liveMsg{pointer-events:none;position:absolute;left:0;right:0;top:calc(42% + min(12%,110px) + 22px);text-align:center;color:#fff;font-size:15px;text-shadow:0 1px 3px #000}
 #liveErr a.btn{text-decoration:none}
+#zaloBar{display:none;background:#fff4ec;border-bottom:1px solid #f3d3bd;padding:10px 16px;gap:10px;align-items:center;font-size:13.5px;line-height:1.4}
+#zaloBar.on{display:flex}
+#zaloBar .zt{flex:1}
+#zaloBar .btn{flex:0 0 auto;text-decoration:none;padding:9px 12px;font-size:14px}
 #camTip{display:none;position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));background:#fff;color:var(--ink);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:2}
 #camTip.on{display:block}
 #camTip button{margin-top:8px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:600;padding:8px 14px;font-size:14px;cursor:pointer}
@@ -144,6 +148,10 @@ th{background:#f6efe6;font-weight:600}
   <div class="staff">Nhân viên: <input id="staff" placeholder="Nhập tên của bạn"></div>
 </header>
 
+<div id="zaloBar">
+  <div class="zt">Đang mở trong Zalo: <b>mỗi lần mở sẽ bị hỏi quyền camera</b>. Mở bằng <span id="zaloBrowser">Safari</span> để chỉ hỏi 1 lần.</div>
+  <a class="btn" id="zaloOpen" href="#">Mở bằng Safari</a>
+</div>
 <main>
   <!-- DANH SÁCH -->
   <section id="v-list" class="view on">
@@ -1160,6 +1168,19 @@ async function openLive(){
   if(!saved && liveTrack && liveTrack.getSettings) store(CAM_KEY, liveTrack.getSettings().deviceId || '');
   if(liveOn) setupLiveControls();
 }
+function iosMajor(){ const m = navigator.userAgent.match(/OS (\d+)_/); return m ? Number(m[1]) : 0; }
+function setupZaloBar(){
+  const browser = IS_ANDROID ? 'Chrome' : 'Safari', url = externalUrl();
+  $('zaloBrowser').textContent = browser; $('zaloOpen').textContent = 'Mở bằng '+browser;
+  const canJump = IS_ANDROID || iosMajor() >= 17;      // iPhone iOS 16 trở xuống không mở thẳng Safari được
+  if(canJump) $('zaloOpen').href = url;
+  else $('zaloOpen').onclick = e => { e.preventDefault(); toast('Bấm ⋯ ở góc trên bên phải → Mở bằng trình duyệt'); };
+  $('zaloBar').classList.add('on');
+  // Tự chuyển 1 lần mỗi lượt mở (không lặp lại nếu nhân viên quay về Zalo)
+  let done = false; try{ done = sessionStorage.getItem('kd91b_jump') === '1'; sessionStorage.setItem('kd91b_jump', '1'); }catch(e){}
+  if(canJump && !done) setTimeout(() => { try{ location.href = url; }catch(e){} }, 400);
+}
+
 /* Hướng dẫn 1 lần để trình duyệt nhớ quyền camera (không hỏi lại ở những lần mở sau) */
 const TIP_KEY = 'kd91b_camtip';
 async function maybeCamTip(){
@@ -1247,15 +1268,17 @@ function closeLive(){
   if(liveTorchOn && liveTrack){ liveTrack.applyConstraints({advanced:[{torch:false}]}).catch(() => {}); }
   liveTorchOn = false;
   $('live').classList.remove('on');
-  // Giữ camera suốt lúc trang đang mở (tối đa 15 phút không quét): quét tiếp không phải xin quyền lại
+  // Giữ camera suốt lúc trang đang mở (tối đa 30 phút không quét): quét tiếp không phải xin quyền lại
   cancelAnimationFrame(previewRaf);
   try{ if(liveV) liveV.pause(); }catch(e){}
   clearTimeout(liveIdle);
-  liveIdle = setTimeout(stopStream, 15*60000);
+  liveIdle = setTimeout(stopStream, 30*60000);
 }
 // Rời khỏi app (chuyển ứng dụng, khóa màn hình) → tắt camera
+// Chuyển ứng dụng / khóa màn hình: chỉ tạm dừng, KHÔNG tắt hẳn camera → quay lại không bị hỏi quyền nữa
 document.addEventListener('visibilitychange', () => {
-  if(document.hidden){ if(liveOn) closeLive(); clearTimeout(liveIdle); stopStream(); }
+  if(document.hidden){ if(liveOn) closeLive(); }
+  else if(liveTrack && liveTrack.readyState !== 'live'){ liveStream = null; liveTrack = null; }   // hệ thống đã tắt hẳn → lần quét sau mở lại
 });
 // Vùng ảnh (theo pixel của camera) tương ứng với khung quét trên màn hình
 function liveCropRect(){
@@ -1821,6 +1844,8 @@ async function doImport(){
   $('staff').onchange = () => store('staff', $('staff').value.trim());
   const now = new Date();
   $('month').value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  // Mở trong Zalo → tự chuyển sang Safari (iOS 17+) / Chrome (Android) một lần, kèm thanh nút để bấm nếu không tự chuyển được
+  if(IN_ZALO && !IN_GAS) setupZaloBar();
   // 0) Trang web riêng: lấy link Apps Script từ đường link (?api=…) hoặc hỏi lần đầu
   if(!IN_GAS){
     const q = new URLSearchParams(location.search).get('api');
