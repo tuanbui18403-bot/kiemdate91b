@@ -90,6 +90,9 @@ th{background:#f6efe6;font-weight:600}
 @keyframes fr{0%{opacity:1;transform:scale(1.4)}40%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
 #liveMsg{pointer-events:none;position:absolute;left:0;right:0;top:calc(42% + min(12%,110px) + 22px);text-align:center;color:#fff;font-size:15px;text-shadow:0 1px 3px #000}
 #liveErr a.btn{text-decoration:none}
+#camTip{display:none;position:absolute;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));background:#fff;color:var(--ink);border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:2}
+#camTip.on{display:block}
+#camTip button{margin-top:8px;border:0;border-radius:10px;background:var(--brand);color:#fff;font-weight:600;padding:8px 14px;font-size:14px;cursor:pointer}
 #liveErr{display:none;position:absolute;left:16px;right:16px;top:30%;background:#fff;color:var(--ink);border-radius:14px;padding:16px;font-size:15px;line-height:1.5;text-align:center}
 .live-bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:14px 12px calc(18px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.75))}
 .live-bar button{border:0;border-radius:24px;padding:11px 14px;font-size:14px;font-weight:600;background:rgba(255,255,255,.18);color:#fff;cursor:pointer;backdrop-filter:blur(4px)}
@@ -338,6 +341,7 @@ th{background:#f6efe6;font-weight:600}
   <video id="liveVideo" playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="false" muted autoplay disablepictureinpicture disableremoteplayback></video>
   <canvas id="livePreview"></canvas>
   <div id="liveBox"><i class="laser"></i><b class="c1"></b><b class="c2"></b><b class="c3"></b><b class="c4"></b></div>
+  <div id="camTip"><div id="camTipText"></div><button id="camTipOk">Đã hiểu</button></div>
   <div id="liveMsg">Đưa mã vạch vào trong khung</div>
   <div id="liveTip">Chạm màn hình để lấy nét · Mã nhỏ: cầm cách 15–20 cm</div>
   <i id="focusRing"></i>
@@ -1149,10 +1153,35 @@ async function openLive(){
   useStream(s);
   $('liveMsg').textContent = 'Đưa mã vạch vào trong khung';
   liveLoop();                                   // bắt đầu đọc ngay, không chờ chọn camera
-  if(!saved){ await pickBestCam(); if(liveTrack && liveTrack.getSettings) store(CAM_KEY, liveTrack.getSettings().deviceId || ''); }
+  maybeCamTip();
+  // iPhone: không tự đổi camera (mỗi lần đổi có thể bị hỏi quyền lại); muốn đổi thì bấm 🔄
+  if(!saved && IS_ANDROID) await pickBestCam();
   else liveCams = await listBackCams();
+  if(!saved && liveTrack && liveTrack.getSettings) store(CAM_KEY, liveTrack.getSettings().deviceId || '');
   if(liveOn) setupLiveControls();
 }
+/* Hướng dẫn 1 lần để trình duyệt nhớ quyền camera (không hỏi lại ở những lần mở sau) */
+const TIP_KEY = 'kd91b_camtip';
+async function maybeCamTip(){
+  if(IN_ZALO || IN_GAS || store(TIP_KEY) === '1') return;
+  const ua = navigator.userAgent, chromeIOS = /CriOS/i.test(ua);
+  if(IS_ANDROID){
+    try{ if(navigator.permissions && (await navigator.permissions.query({name:'camera'})).state === 'granted'){ store(TIP_KEY, '1'); return; } }catch(e){}
+  }
+  let html;
+  if(IS_ANDROID)
+    html = '📌 <b>Để Chrome không hỏi lại quyền camera:</b> khi được hỏi, chọn <b>Cho phép</b> (không chọn “Chỉ lần này”).<br>' +
+           'Nếu lỡ chọn sai: bấm <b>biểu tượng bên trái địa chỉ trang</b> → <b>Quyền</b> → <b>Camera</b> → <b>Cho phép</b>.';
+  else if(chromeIOS)
+    html = '📌 <b>Để Chrome không hỏi lại quyền camera:</b> bấm <b>⋯</b> → <b>Cài đặt</b> → <b>Cài đặt nội dung</b> (hoặc <b>Quyền riêng tư</b>) → <b>Camera</b> → <b>Cho phép</b>.<br>' +
+           'Nếu vẫn bị hỏi, dùng <b>Safari</b> và làm theo hướng dẫn ở Safari.';
+  else
+    html = '📌 <b>Để Safari không hỏi lại quyền camera:</b> bấm <b>aA</b> (hoặc <b>⋯</b>) ở thanh địa chỉ → <b>Cài đặt trang web</b> → <b>Camera</b> → chọn <b>Cho phép</b>.<br>' +
+           'Hoặc cho mọi trang: <b>Cài đặt iPhone → Ứng dụng → Safari → Camera → Cho phép</b>.';
+  $('camTipText').innerHTML = html; $('camTip').classList.add('on');
+}
+$('camTipOk').onclick = () => { store(TIP_KEY, '1'); $('camTip').classList.remove('on'); };
+
 function setupLiveControls(){
   const caps = capsOf(liveTrack);
   if(caps.focusMode && caps.focusMode.includes('continuous'))
