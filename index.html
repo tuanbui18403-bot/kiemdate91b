@@ -334,7 +334,7 @@ th{background:#f6efe6;font-weight:600}
 
 <!-- Quét mã trực tiếp bằng camera -->
 <div id="live">
-  <video id="liveVideo" playsinline muted autoplay></video>
+  <video id="liveVideo" playsinline webkit-playsinline x5-playsinline x5-video-player-type="h5" x5-video-player-fullscreen="false" muted autoplay disablepictureinpicture disableremoteplayback></video>
   <div id="liveBox"><i class="laser"></i><b class="c1"></b><b class="c2"></b><b class="c3"></b><b class="c4"></b></div>
   <div id="liveMsg">Đưa mã vạch vào trong khung</div>
   <div id="liveTip">Chạm màn hình để lấy nét · Mã nhỏ: cầm cách 15–20 cm</div>
@@ -1015,11 +1015,39 @@ async function pickBestCam(){
     }
   }
 }
+// Bắt buộc phát camera NGAY TRONG TRANG (không mở trình phát video toàn màn hình của iPhone/Zalo)
+function inlineVideo(v){
+  v.muted = true; v.defaultMuted = true; v.controls = false;
+  v.playsInline = true; v.autoplay = true;
+  ['playsinline','webkit-playsinline','x5-playsinline','muted','disablepictureinpicture','disableremoteplayback'].forEach(a => v.setAttribute(a, ''));
+  v.setAttribute('x5-video-player-type', 'h5'); v.setAttribute('x5-video-player-fullscreen', 'false');
+  try{ v.disablePictureInPicture = true; }catch(e){}
+}
 function useStream(s){
   if(liveStream && liveStream !== s) liveStream.getTracks().forEach(t => { try{ t.stop(); }catch(e){} });
   liveStream = s; liveTrack = s.getVideoTracks()[0];
-  const v = $('liveVideo'); v.srcObject = s; v.play().catch(() => {});
+  const v = $('liveVideo'); inlineVideo(v); v.srcObject = s; v.play().catch(() => {});
 }
+// Nếu trình duyệt (vd Zalo trên một số iPhone) vẫn ép mở toàn màn hình → thoát ra, hướng dẫn mở bằng Safari
+function fullscreenBlocked(){
+  const v = $('liveVideo');
+  try{ if(v.webkitDisplayingFullscreen && v.webkitExitFullscreen) v.webkitExitFullscreen(); }catch(e){}
+  try{ if(document.fullscreenElement) document.exitFullscreen(); }catch(e){}
+  if(!liveOn) return;
+  clearTimeout(liveTimer); liveOn = false;
+  const browser = IS_ANDROID ? 'Chrome' : 'Safari';
+  $('live').classList.add('on');
+  liveError('<b>'+(IN_ZALO ? 'Zalo' : 'Trình duyệt này')+' trên máy này không cho hiện camera trong trang</b> (tự mở trình phát video).<br>' +
+    'Mở tool bằng '+browser+' để quét trực tiếp:<br><a class="btn" style="margin-top:10px" href="'+esc(externalUrl())+'">Mở bằng '+browser+'</a>' +
+    '<br><span style="font-size:13px;color:var(--muted)">Hoặc bấm <b>⋯</b> góc trên → <b>Mở bằng trình duyệt</b>. Tạm thời có thể bấm <b>📸 Chụp ảnh</b>.</span>');
+  stopStream();
+}
+['webkitbeginfullscreen','webkitpresentationmodechanged','enterpictureinpicture'].forEach(ev =>
+  $('liveVideo').addEventListener(ev, () => {
+    const v = $('liveVideo');
+    if(ev !== 'webkitpresentationmodechanged' || (v.webkitPresentationMode && v.webkitPresentationMode !== 'inline')) fullscreenBlocked();
+  }));
+document.addEventListener('fullscreenchange', () => { if(document.fullscreenElement === $('liveVideo')) fullscreenBlocked(); });
 async function switchTo(deviceId){
   try{ useStream(await getStream(deviceId)); }catch(e){}
 }
